@@ -1,6 +1,13 @@
 # Build directories
 build/
 out/
+
+# GitNexus local index (large binary blobs, regenerable via `npx gitnexus analyze`)
+.gitnexus/
+
+# Acropolis bench scratch directories (RAM bdev configs created per
+# bench_repo_scan invocation, e.g. bench_ram_<level>_<backend>)
+bench_ram_*
 cmake-build-*/
 *build*/
 /dist

@@ -190,6 +190,36 @@ chi::TaskResume BinaryFileAssimilator::Schedule(const AssimilationCtx& ctx,
   }
   HLOG(kDebug, "BinaryFileAssimilator: Description blob stored successfully");
 
+  // Tag the description blob with its data category (code / scientific /
+  // document / other) so downstream consumers can route or filter on it.
+  // No per-category logic runs today — the label is just placed on the meta
+  // sibling so deployments and future hooks have a stable place to look.
+  {
+    wrp_cte::core::BlobMeta desc_meta;
+    desc_meta.category = CategoryFromPath(src_path);
+    std::string meta_json = desc_meta.ToJson();
+    size_t meta_size = meta_json.size();
+    auto meta_buffer = CHI_IPC->AllocateBuffer(meta_size);
+    std::memcpy(meta_buffer.ptr_, meta_json.data(), meta_size);
+    auto meta_task = cte_client_->AsyncPutBlob(
+        tag_id, "description.meta", 0, meta_size,
+        meta_buffer.shm_.template Cast<void>(), 1.0f,
+        wrp_cte::core::Context(), 0);
+    co_await meta_task;
+    if (meta_task->return_code_ != 0) {
+      // Non-fatal: assimilation succeeds even if the category label can't be
+      // written. Downstream code treats a missing category as "other".
+      HLOG(kError,
+           "BinaryFileAssimilator: Failed to write description.meta for tag "
+           "'{}' (category='{}'), return_code: {} (non-fatal)",
+           tag_name, desc_meta.category, meta_task->return_code_);
+    } else {
+      HLOG(kDebug,
+           "BinaryFileAssimilator: Tagged '{}' with category='{}'",
+           tag_name, desc_meta.category);
+    }
+  }
+
   // Define chunking parameters
   static constexpr size_t kMaxChunkSize = 1024 * 1024;  // 1 MB
   static constexpr size_t kMaxParallelTasks = 32;

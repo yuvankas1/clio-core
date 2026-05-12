@@ -32,10 +32,52 @@
  */
 
 #include <wrp_cte/core/core_client.h>
+#include <nlohmann/json.hpp>
 #include <cstring>
 #include <stdexcept>
 
 namespace wrp_cte::core {
+
+// ---------------------------------------------------------------------------
+// BlobMeta serialization
+// ---------------------------------------------------------------------------
+
+std::string BlobMeta::ToJson() const {
+  nlohmann::json j;
+  j["input_hash"]   = input_hash;
+  j["content_hash"] = content_hash;
+  j["op_version"]   = op_version;
+  j["prompt_hash"]  = prompt_hash;
+  j["model_id"]     = model_id;
+  j["created_at"]   = created_at;
+  j["category"]     = category;
+  return j.dump();
+}
+
+BlobMeta BlobMeta::FromJson(const std::string &json_str) {
+  BlobMeta m;
+  auto j = nlohmann::json::parse(json_str, /*cb=*/nullptr,
+                                 /*allow_exceptions=*/false);
+  if (j.is_discarded() || !j.is_object()) {
+    return m;
+  }
+  auto get_str = [&](const char *k) -> std::string {
+    auto it = j.find(k);
+    return (it != j.end() && it->is_string()) ? it->get<std::string>() : "";
+  };
+  auto get_int = [&](const char *k) -> int {
+    auto it = j.find(k);
+    return (it != j.end() && it->is_number_integer()) ? it->get<int>() : 0;
+  };
+  m.input_hash   = get_str("input_hash");
+  m.content_hash = get_str("content_hash");
+  m.op_version   = get_int("op_version");
+  m.prompt_hash  = get_str("prompt_hash");
+  m.model_id     = get_str("model_id");
+  m.created_at   = get_str("created_at");
+  m.category     = get_str("category");
+  return m;
+}
 
 Tag::Tag(const std::string &tag_name) : tag_name_(tag_name) {
   auto *cte_client = WRP_CTE_CLIENT;
@@ -190,6 +232,35 @@ void Tag::ReorganizeBlob(const std::string &blob_name, float new_score) {
   if (task->GetReturnCode() != 0) {
     throw std::runtime_error("ReorganizeBlob operation failed");
   }
+}
+
+// ---------------------------------------------------------------------------
+// Per-blob metadata (sibling .meta blob)
+// ---------------------------------------------------------------------------
+
+void Tag::PutBlobMeta(const std::string &blob_name, const BlobMeta &meta) {
+  std::string meta_name = blob_name + kMetaSuffix;
+  std::string json_str = meta.ToJson();
+  // Metadata is small (<1 KB typical); always placed on the hot tier
+  // (score=1.0) so idempotency checks don't pay tier-migration cost.
+  PutBlob(meta_name, json_str.data(), json_str.size(),
+          /*off=*/0, /*score=*/1.0f);
+}
+
+BlobMeta Tag::GetBlobMeta(const std::string &blob_name) {
+  std::string meta_name = blob_name + kMetaSuffix;
+  chi::u64 sz = GetBlobSize(meta_name);
+  if (sz == 0 || sz > (64 * 1024)) {
+    // Either no meta, or implausibly large — return defaults.
+    return BlobMeta{};
+  }
+  std::vector<char> buf(static_cast<size_t>(sz));
+  GetBlob(meta_name, buf.data(), buf.size());
+  return BlobMeta::FromJson(std::string(buf.data(), buf.size()));
+}
+
+bool Tag::HasBlobMeta(const std::string &blob_name) {
+  return GetBlobSize(blob_name + kMetaSuffix) > 0;
 }
 
 } // namespace wrp_cte::core

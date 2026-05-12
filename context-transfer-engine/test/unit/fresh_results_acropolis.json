@@ -1,0 +1,197 @@
+{
+  "agent": "mcp-direct",
+  "arm": "acropolis_new_summaries_5backends_18queries",
+  "summary_cache": "acropolis_summary_cache_e775e288f31112c8.json",
+  "total_queries": 18,
+  "oracle_score": 18,
+  "routed_score": 18,
+  "baseline_score": 17,
+  "baseline_tool_calls": 32,
+  "oracle": [
+    {
+      "id": 1,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 2,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 3,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 4,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "elasticsearch-kw",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 5,
+      "hit": true,
+      "winners": [
+        "qdrant",
+        "elasticsearch-vec"
+      ]
+    },
+    {
+      "id": 6,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "elasticsearch-kw",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 7,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "elasticsearch-kw"
+      ]
+    },
+    {
+      "id": 8,
+      "hit": true,
+      "winners": [
+        "qdrant",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 9,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 10,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 11,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "elasticsearch-kw",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 12,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 13,
+      "hit": true,
+      "winners": [
+        "elasticsearch-kw",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 14,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 15,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 16,
+      "hit": true,
+      "winners": [
+        "qdrant",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 19,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    },
+    {
+      "id": 20,
+      "hit": true,
+      "winners": [
+        "bm25",
+        "qdrant",
+        "elasticsearch-kw",
+        "elasticsearch-vec",
+        "elasticsearch-rrf"
+      ]
+    }
+  ],
+  "per_backend_total": {
+    "bm25": 14,
+    "qdrant": 13,
+    "elasticsearch-kw": 14,
+    "elasticsearch-vec": 13,
+    "elasticsearch-rrf": 16
+  }
+}

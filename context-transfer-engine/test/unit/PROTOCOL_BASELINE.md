@@ -1,4 +1,4 @@
-# Protocol 1 — fresh Claude WITHOUT Acropolis (15 queries, with token logging)
+# Baseline protocol — fresh Claude WITHOUT Acropolis (20 queries)
 
 Open a NEW Claude Code chat in workspace `C:\Users\rajni\Documents\GPU_OS`.
 Disable the `acropolis` MCP server first (`/mcp` → toggle off) or just
@@ -23,7 +23,7 @@ QUERIES (just questions — do not assume any expected file name):
    q4:  "Where is the HDF5 metadata extractor?"
    q5:  "Find the CLI tool that sets indexing depth on files"
    q6:  "Locate the unit test that exercises GPU submission on an actual GPU"
-   q7:  "Find the code that streams per-layer GGML weights through GpuVMM"
+   q7:  "Find the implementation file that performs per-layer FlexGen weight streaming through GpuVMM"
    q8:  "Where is the KV-cache manager that interacts with llama.cpp?"
    q9:  "Find the end-to-end script that tests KV cache restore on GPU"
    q10: "Locate the benchmark that scans a repo with an LLM agent loop"
@@ -32,6 +32,11 @@ QUERIES (just questions — do not assume any expected file name):
    q13: "Locate the depth controller that resolves xattr inheritance across directories"
    q14: "Find the OpenAI-compatible HTTP embeddings client shared across backends"
    q15: "Where is the unit test validating indexing-depth configuration parsing?"
+   q16: "Find the implementation that overlaps GPU compute with weight transfer using double buffering during transformer layer execution"
+   q17: "Where is the deferred-release fix that prevents the GpuVmm page-overlap bug between adjacent transformer layers?"
+   q18: "Locate the file that defines the kCtePoolName and kCtePoolId constants establishing the canonical CTE pool identity"
+   q19: "Find the operator that produces the verbose ~85-word natural-language summary for each file at the deepest indexing tier"
+   q20: "Where is the YAML defining the default mapping from file extensions to Acropolis indexing tiers?"
 
 EXACT PROCEDURE — follow for EVERY query:
    1. Type `/cost` exactly as a message. The harness prints a cost line
@@ -45,17 +50,17 @@ EXACT PROCEDURE — follow for EVERY query:
    5. Type `/cost` again. Record numbers as
       `tokens_in_end`, `tokens_out_end`.
 
-After all 15 queries, print ONE final code block in this exact JSON
+After all 20 queries, print ONE final code block in this exact JSON
 shape, with NO commentary:
 
 {
   "agent": "claude-sonnet-4.7",
-  "arm": "without_acropolis",
+  "arm": "baseline",
   "results": [
     {"id": 1, "n_calls": <int>, "answer_path": "<absolute path or null>",
      "tokens_in_start": <int>, "tokens_in_end": <int>,
      "tokens_out_start": <int>, "tokens_out_end": <int>},
-    ...same for q2..q15...
+    ...same for q2..q20...
   ]
 }
 

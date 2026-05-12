@@ -330,23 +330,55 @@ def neo4j_search(query: str, k: int, level: int, mode: str) -> list[dict[str, An
 # Top-level dispatch
 # --------------------------------------------------------------------------- #
 
+def compute_confidence(hits: list[dict[str, Any]]) -> float:
+    """Margin-based confidence in [0, 1].
+
+    high → top-1 is clearly the best match (score gap to rank-2 is large)
+    low  → top-1 and top-2 are tied / no good match exists
+
+    Heuristic:
+      * 0 hits:                       0.0
+      * 1 hit:                        0.7  (no comparison; moderate trust)
+      * top1_score == 0:              0.0
+      * else: (s1 - s2) / s1 capped to [0, 1]
+    """
+    valid = [h for h in hits if "error" not in h and h.get("score") is not None]
+    if not valid:
+        return 0.0
+    if len(valid) == 1:
+        return 0.7
+    s1 = float(valid[0].get("score", 0.0))
+    s2 = float(valid[1].get("score", 0.0))
+    if s1 <= 0:
+        return 0.0
+    return max(0.0, min(1.0, (s1 - s2) / s1))
+
+
 def semantic_query(query: str, k: int, backend: str,
-                    level: int) -> list[dict[str, Any]]:
+                    level: int) -> dict[str, Any]:
     if backend == "bm25":
-        return bm25_search(query, k, level)
-    if backend == "elasticsearch-kw":
-        return es_search(query, k, level, "kw")
-    if backend == "elasticsearch-vec":
-        return es_search(query, k, level, "vec")
-    if backend == "elasticsearch-rrf":
-        return es_search(query, k, level, "rrf")
-    if backend == "qdrant":
-        return qdrant_search(query, k, level)
-    if backend == "neo4j-kw":
-        return neo4j_search(query, k, level, "kw")
-    if backend == "neo4j-rrf":
-        return neo4j_search(query, k, level, "rrf")
-    return [{"error": f"unknown backend: {backend}"}]
+        hits = bm25_search(query, k, level)
+    elif backend == "elasticsearch-kw":
+        hits = es_search(query, k, level, "kw")
+    elif backend == "elasticsearch-vec":
+        hits = es_search(query, k, level, "vec")
+    elif backend == "elasticsearch-rrf":
+        hits = es_search(query, k, level, "rrf")
+    elif backend == "qdrant":
+        hits = qdrant_search(query, k, level)
+    elif backend == "neo4j-kw":
+        hits = neo4j_search(query, k, level, "kw")
+    elif backend == "neo4j-rrf":
+        hits = neo4j_search(query, k, level, "rrf")
+    else:
+        return {"error": f"unknown backend: {backend}",
+                "confidence": 0.0, "hits": []}
+    confidence = compute_confidence(hits)
+    return {
+        "confidence": round(confidence, 3),
+        "verify_recommended": confidence < 0.3,
+        "hits": hits,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -365,12 +397,17 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="semantic_query",
             description=(
-                "Acropolis semantic search over a code repo. Returns up to k "
-                "ranked hits with {path, score, optional summary}. Pick a "
-                "backend (bm25 / elasticsearch-kw|vec|rrf / qdrant / "
-                "neo4j-kw|rrf) and an indexing depth (0=name, 1=metadata, "
-                "2=content+LLM-summary). Default backend=bm25, level=2 give "
-                "the best precision/cost tradeoff."),
+                "Acropolis semantic search over a code repo. Returns "
+                "{confidence, verify_recommended, hits: [{path, score, "
+                "optional summary}]}. confidence is in [0, 1]: it is the "
+                "margin between the top-1 and top-2 hit scores. When "
+                "verify_recommended=true (confidence < 0.3) you SHOULD "
+                "Read the top-1 candidate before committing — the top hit "
+                "may be ambiguous or wrong. Pick a backend (bm25 / "
+                "elasticsearch-kw|vec|rrf / qdrant / neo4j-kw|rrf) and an "
+                "indexing depth (0=name, 1=metadata, 2=content+LLM-summary). "
+                "Default backend=bm25, level=2 give the best precision/cost "
+                "tradeoff."),
             inputSchema={
                 "type": "object",
                 "properties": {

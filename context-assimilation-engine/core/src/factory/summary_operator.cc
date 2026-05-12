@@ -39,6 +39,8 @@
 #include <string>
 #include <vector>
 
+#include <wrp_cae/core/factory/hashing.h>
+
 #ifdef WRP_CAE_ENABLE_SUMMARY_OP
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
@@ -50,28 +52,119 @@
 
 namespace wrp_cae::core {
 
+// ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+
+SummaryOperator::Config SummaryOperator::Config::FromEnv() {
+  Config c;
+  if (const char* e = std::getenv("CAE_SUMMARY_ENDPOINT")) c.endpoint = e;
+  if (const char* m = std::getenv("CAE_SUMMARY_MODEL")) c.model = m;
+  // system_prompt and max_tokens are resolved lazily by ResolveSystemPrompt/
+  // ResolveMaxTokens so the legacy env-on-every-call semantics are preserved.
+  return c;
+}
+
+// ---------------------------------------------------------------------------
+// Constructors
+// ---------------------------------------------------------------------------
+
+SummaryOperator::SummaryOperator(
+    std::shared_ptr<wrp_cte::core::Client> cte_client, Config config)
+    : cte_client_(std::move(cte_client)), config_(std::move(config)) {}
+
 SummaryOperator::SummaryOperator(
     std::shared_ptr<wrp_cte::core::Client> cte_client)
-    : cte_client_(cte_client) {
-  const char* endpoint_env = std::getenv("CAE_SUMMARY_ENDPOINT");
-  if (endpoint_env && std::strlen(endpoint_env) > 0) {
-    endpoint_ = endpoint_env;
-  }
-  const char* model_env = std::getenv("CAE_SUMMARY_MODEL");
-  if (model_env && std::strlen(model_env) > 0) {
-    model_ = model_env;
-  }
+    : SummaryOperator(std::move(cte_client), Config::FromEnv()) {}
+
+// ---------------------------------------------------------------------------
+// Prompt + token resolution
+// ---------------------------------------------------------------------------
+
+bool SummaryOperator::HasHumanDescription(const std::string& description) {
+  return description.find("description:") != std::string::npos ||
+         description.find("description=") != std::string::npos ||
+         description.find("long_name:") != std::string::npos;
 }
+
+std::string SummaryOperator::ResolveSystemPrompt(
+    const std::string& description) const {
+  if (!config_.system_prompt.empty()) return config_.system_prompt;
+  if (const char* p = std::getenv("CAE_SUMMARY_SYSTEM_PROMPT")) return p;
+  if (HasHumanDescription(description)) {
+    return "You are a scientific data analyst. Given a dataset description "
+           "from a simulation output file, summarize it in exactly 4 to 8 "
+           "words. Keep domain-specific terms. Return ONLY the summary, "
+           "nothing else.";
+  }
+  return "You are a scientific data analyst for HPC simulations. Given raw "
+         "metadata from a simulation output file, write a concise 4-8 word "
+         "searchable description. Identify the simulation type and key "
+         "properties. Translate numeric codes and flags to their scientific "
+         "meaning. Return ONLY the description, nothing else.";
+}
+
+int SummaryOperator::ResolveMaxTokens() const {
+  if (config_.max_tokens > 0) return config_.max_tokens;
+  if (const char* mt = std::getenv("CAE_SUMMARY_MAX_TOKENS")) {
+    int v = std::atoi(mt);
+    if (v > 0 && v <= 4096) return v;
+  }
+  return 64;
+}
+
+// ---------------------------------------------------------------------------
+// Idempotency input hash
+// ---------------------------------------------------------------------------
+
+std::string SummaryOperator::ComputeInputHash(wrp_cte::core::Tag& tag) const {
+  chi::u64 sz = tag.GetBlobSize("description");
+  if (sz == 0) return "";
+  std::vector<char> buf(sz);
+  tag.GetBlob("description", buf.data(), sz);
+  std::string description(buf.data(), sz);
+
+  std::string prompt = ResolveSystemPrompt(description);
+  int max_tokens = ResolveMaxTokens();
+
+  // Hash: description bytes, resolved prompt, model, max_tokens, op_version.
+  // Any change to any of these produces a different hash → cache miss → re-run.
+  std::string h = hashing::Fnv1a64Hex(description);
+  h = hashing::ChainHex(h, prompt);
+  h = hashing::ChainHex(h, config_.model);
+  h = hashing::ChainHex(h, std::to_string(max_tokens));
+  h = hashing::ChainHex(h, std::to_string(Version()));
+  return h;
+}
+
+// ---------------------------------------------------------------------------
+// Execute
+// ---------------------------------------------------------------------------
 
 int SummaryOperator::Execute(const std::string& tag_name) {
   HLOG(kInfo, "SummaryOperator::Execute ENTRY: tag='{}'", tag_name);
 
   // Validate configuration
-  if (endpoint_.empty() || model_.empty()) {
+  if (config_.endpoint.empty() || config_.model.empty()) {
     HLOG(kError,
-         "SummaryOperator: CAE_SUMMARY_ENDPOINT and CAE_SUMMARY_MODEL "
-         "must be set");
+         "SummaryOperator: endpoint and model must be set (Config or "
+         "CAE_SUMMARY_ENDPOINT/CAE_SUMMARY_MODEL env vars)");
     return -1;
+  }
+
+  // Idempotency check: skip LLM call if a prior run produced the same output
+  // for this exact (description, prompt, model, max_tokens, op_version).
+  try {
+    wrp_cte::core::Tag tag(tag_name);
+    if (IsCached(tag)) {
+      HLOG(kInfo, "SummaryOperator: cache HIT for tag '{}' — skipping LLM call",
+           tag_name);
+      return 0;
+    }
+  } catch (const std::exception& e) {
+    HLOG(kError, "SummaryOperator: Failed to open tag '{}' for cache check: {}",
+         tag_name, e.what());
+    return -2;
   }
 
   // Step 1: Read the description blob
@@ -83,15 +176,8 @@ int SummaryOperator::Execute(const std::string& tag_name) {
   }
   HLOG(kInfo, "SummaryOperator: Read description: '{}'", description);
 
-  // Step 2: Call LLM to summarize
-  // Check if the description contains a human-written description field.
-  // If yes, use the summarization prompt. If no (only raw metadata like
-  // key=value pairs, numeric fields), use the interpretation prompt.
-  bool has_description_text =
-      description.find("description:") != std::string::npos ||
-      description.find("description=") != std::string::npos ||
-      description.find("long_name:") != std::string::npos;
-  std::string summary = CallLlm(description, has_description_text);
+  // Step 2: Call LLM (prompt is resolved per call via ResolveSystemPrompt)
+  std::string summary = CallLlm(description);
   if (summary.empty()) {
     HLOG(kError, "SummaryOperator: LLM call failed for tag '{}'", tag_name);
     return -4;
@@ -104,6 +190,29 @@ int SummaryOperator::Execute(const std::string& tag_name) {
     HLOG(kError, "SummaryOperator: Failed to write summary blob to tag '{}'",
          tag_name);
     return rc;
+  }
+
+  // Step 4: Write idempotency + provenance metadata.
+  // Category is propagated from the description blob's meta when present, so
+  // queries can filter results by data category (code / scientific / ...).
+  try {
+    wrp_cte::core::Tag tag(tag_name);
+    wrp_cte::core::BlobMeta meta;
+    meta.input_hash = ComputeInputHash(tag);
+    meta.op_version = Version();
+    meta.prompt_hash = hashing::Fnv1a64Hex(ResolveSystemPrompt(description));
+    meta.model_id = config_.model;
+    meta.created_at = CurrentTimestamp();
+    auto desc_meta = tag.GetBlobMeta("description");
+    meta.category = desc_meta.category;
+    tag.PutBlobMeta("summary", meta);
+  } catch (const std::exception& e) {
+    // Meta write failure is non-fatal: the summary blob is already saved.
+    // Next call will see no meta → IsCached returns false → re-run. That's
+    // wasteful but correct.
+    HLOG(kError, "SummaryOperator: Failed to write summary meta for '{}': {} "
+                 "(non-fatal; will trigger re-run on next call)",
+         tag_name, e.what());
   }
 
   HLOG(kInfo, "SummaryOperator::Execute EXIT: Success for tag '{}'", tag_name);
@@ -145,38 +254,14 @@ static size_t CurlWriteCallback(void* contents, size_t size, size_t nmemb,
   return total_size;
 }
 
-std::string SummaryOperator::CallLlm(const std::string& description,
-                                      bool has_description_text) {
-  // Two prompts:
-  // 1. Description available: summarize the human-readable text
-  // 2. Raw metadata only: interpret the metadata and generate a description
-  // Env-var override lets callers swap the default HPC-dataset prompt for a
-  // different one (e.g. code search needs keyword-dense multi-sentence
-  // summaries rather than 4-8 word labels).
-  std::string system_prompt;
-  int max_tokens = 64;
-  if (const char* p = std::getenv("CAE_SUMMARY_SYSTEM_PROMPT")) {
-    system_prompt = p;
-  } else if (has_description_text) {
-    system_prompt =
-        "You are a scientific data analyst. Given a dataset description from "
-        "a simulation output file, summarize it in exactly 4 to 8 words. "
-        "Keep domain-specific terms. Return ONLY the summary, nothing else.";
-  } else {
-    system_prompt =
-        "You are a scientific data analyst for HPC simulations. Given raw "
-        "metadata from a simulation output file, write a concise 4-8 word "
-        "searchable description. Identify the simulation type and key "
-        "properties. Translate numeric codes and flags to their scientific "
-        "meaning. Return ONLY the description, nothing else.";
-  }
-  if (const char* mt = std::getenv("CAE_SUMMARY_MAX_TOKENS")) {
-    int v = std::atoi(mt);
-    if (v > 0 && v <= 4096) max_tokens = v;
-  }
+std::string SummaryOperator::CallLlm(const std::string& description) const {
+  // Resolve prompt + max_tokens via the unified resolution helpers so that
+  // ComputeInputHash and CallLlm always agree on the actual values used.
+  std::string system_prompt = ResolveSystemPrompt(description);
+  int max_tokens = ResolveMaxTokens();
 
   nlohmann::json request_body;
-  request_body["model"] = model_;
+  request_body["model"] = config_.model;
   request_body["messages"] = nlohmann::json::array({
       {{"role", "system"}, {"content", system_prompt}},
       {{"role", "user"}, {"content", description}},
@@ -185,7 +270,7 @@ std::string SummaryOperator::CallLlm(const std::string& description,
   request_body["temperature"] = 0.0;
 
   std::string payload = request_body.dump();
-  std::string url = endpoint_ + "/chat/completions";
+  std::string url = config_.endpoint + "/chat/completions";
 
   HLOG(kDebug, "SummaryOperator: POST {} payload={}", url, payload);
 
@@ -253,8 +338,8 @@ std::string SummaryOperator::CallLlm(const std::string& description,
 
 #else  // !WRP_CAE_ENABLE_SUMMARY_OP
 
-std::string SummaryOperator::CallLlm(const std::string& description,
-                                      bool has_description_text) {
+std::string SummaryOperator::CallLlm(const std::string& description) const {
+  (void)description;
   HLOG(kError,
        "SummaryOperator: Summary operator not compiled in. "
        "Rebuild with -DWRP_CAE_ENABLE_SUMMARY_OP=ON");

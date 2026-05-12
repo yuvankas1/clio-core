@@ -24,6 +24,9 @@
 
 #ifdef ACROPOLIS_BENCH_USE_SUMMARY
 #include <wrp_cae/core/factory/summary_operator.h>
+#include <wrp_cae/core/factory/operator_scheduler.h>
+#include <wrp_cae/core/factory/hashing.h>
+#include <wrp_cae/core/factory/base_assimilator.h>  // for CategoryFromPath
 #endif
 
 #include <httplib.h>
@@ -237,13 +240,23 @@ int main(int argc, char **argv) {
   // with ACROPOLIS_BENCH_USE_SUMMARY.
   std::unordered_map<std::string, std::string> path_to_summary;
   bool l2_summary_enabled = false;
+  // Hoisted to outer scope so Phase 2 can distinguish "summary loaded from
+  // disk cache (KG insert NOT yet done by Phase 1)" from "summary produced
+  // by the scheduler in Phase 1 (KG insert ALREADY done)".
+  bool summary_cache_was_hit = false;
 #ifdef ACROPOLIS_BENCH_USE_SUMMARY
-  if (level == 2 && std::getenv("CAE_SUMMARY_ENDPOINT") &&
+  if (std::getenv("CAE_SUMMARY_ENDPOINT") &&
       std::getenv("CAE_SUMMARY_MODEL")) {
     l2_summary_enabled = true;
-    std::cout << "\nL2: generating LLM summaries via CAE SummaryOperator ("
+    std::cout << "\nL" << level
+              << ": generating LLM summaries via CAE SummaryOperator ("
               << std::getenv("CAE_SUMMARY_MODEL") << " @ "
-              << std::getenv("CAE_SUMMARY_ENDPOINT") << ")\n";
+              << std::getenv("CAE_SUMMARY_ENDPOINT") << ")\n"
+              << "  level " << level << " input richness: "
+              << (level == 0 ? "path only"
+                  : level == 1 ? "path + filesystem metadata"
+                               : "path + metadata + file content (head+tail 8 KB)")
+              << "\n";
 
     // --- Disk cache: summaries are a function of (model, repo, file set), not
     //     backend. Reuse across cells to save ~30 min per matrix run.
@@ -277,6 +290,7 @@ int main(int argc, char **argv) {
           std::cout << "  cache hit: " << path_to_summary.size()
                     << " summaries loaded from " << cache_path << "\n";
           loaded_from_cache = true;
+          summary_cache_was_hit = true;
         }
       }
     }
@@ -301,11 +315,16 @@ int main(int argc, char **argv) {
     auto total_work = files.size();
 
     auto worker = [&]() {
-      // Each worker shares the global CTE client and creates its own
-      // SummaryOperator (stateless apart from the env-var endpoint/model).
+      // Each worker shares the global CTE client and constructs its own
+      // OperatorScheduler. The scheduler drives the production pipeline:
+      //   SummaryOperator (idempotent, skips if cached via BlobMeta) →
+      //   AsyncUpdateKnowledgeGraph (CTE chimaera task → KGBackend upsert).
+      // Config is read from CAE_SUMMARY_* env vars to stay compatible with
+      // the bench's existing invocation conventions.
       auto cte_shared = std::shared_ptr<wrp_cte::core::Client>(
           WRP_CTE_CLIENT, [](wrp_cte::core::Client *) {});
-      wrp_cae::core::SummaryOperator op(cte_shared);
+      wrp_cae::core::OperatorScheduler scheduler(
+          cte_shared, wrp_cae::core::SummaryOperator::Config::FromEnv());
 
       while (true) {
         std::string p;
@@ -332,7 +351,24 @@ int main(int argc, char **argv) {
         try {
           wrp_cte::core::Tag tag(p);
           tag.PutBlob("description", desc.c_str(), desc.size());
-          last_rc = op.Execute(p);
+
+          // 2. Write category + content_hash on description blob meta.
+          //    The bench bypasses BinaryFileAssimilator, so replicate the
+          //    B8-mini labeling here so the production pipeline's
+          //    idempotency / category routing has the data it expects.
+          {
+            wrp_cte::core::BlobMeta dmeta;
+            dmeta.category = wrp_cae::core::CategoryFromPath(p);
+            dmeta.content_hash = wrp_cae::core::hashing::Fnv1a64Hex(desc);
+            tag.PutBlobMeta("description", dmeta);
+          }
+
+          // 3. Run the production pipeline: SummaryOperator (idempotent) →
+          //    AsyncUpdateKnowledgeGraph (CTE chimaera task that upserts
+          //    into the configured KGBackend). This single call replaces
+          //    the previous manual two-step orchestration.
+          last_rc = scheduler.RunForTag(p);
+
           if (last_rc == 0) {
             chi::u64 sz = tag.GetBlobSize("summary");
             if (sz > 0 && sz < 4096) {
@@ -406,27 +442,53 @@ int main(int argc, char **argv) {
 #endif
 
   // --- Ingest all files: GetOrCreateTag + UpdateKnowledgeGraph ---
+  // B15: at L2 with summary enabled, the worker pool above already drove
+  // the full production pipeline (SummaryOperator → AsyncUpdateKnowledgeGraph)
+  // via OperatorScheduler, so any file present in path_to_summary has
+  // already been ingested. We still need to call AsyncUpdateKnowledgeGraph
+  // for L0/L1 (no Phase-1 worker pool) and for files where the scheduler
+  // failed (no summary recorded).
   std::cout << "\nIngesting (level=" << level << ", L2 summary="
             << (l2_summary_enabled ? "yes" : "no") << ")...\n";
   std::unordered_map<uint64_t, std::string> tag_to_path;
   auto t0 = std::chrono::steady_clock::now();
   size_t ingested = 0;
+  size_t already_ingested_by_scheduler = 0;
   for (const auto &path_str : files) {
     auto got = client.AsyncGetOrCreateTag(path_str);
     got.Wait();
     if (got->GetReturnCode() != 0) continue;
     TagId tag = got->tag_id_;
 
-    std::string summary;
-    auto sit = path_to_summary.find(path_str);
-    if (sit != path_to_summary.end()) summary = sit->second;
-
-    auto upd = client.AsyncUpdateKnowledgeGraph(tag, path_str, summary);
-    upd.Wait();
+    // Three cases:
+    //   1. summary_cache_was_hit: Phase 1 worker pool was SKIPPED. Nothing
+    //      has been inserted into the KG yet. For files in path_to_summary
+    //      pass the cached summary; for missing files pass "".
+    //   2. Phase 1 ran AND this file is in path_to_summary: the scheduler
+    //      already called AsyncUpdateKnowledgeGraph for it — skip to avoid
+    //      a redundant upsert.
+    //   3. Phase 1 ran but this file is NOT in path_to_summary (scheduler
+    //      failed): insert now with empty summary.
+    bool scheduler_inserted_in_phase1 =
+        l2_summary_enabled && !summary_cache_was_hit &&
+        path_to_summary.find(path_str) != path_to_summary.end();
+    if (scheduler_inserted_in_phase1) {
+      ++already_ingested_by_scheduler;
+    } else {
+      std::string summary;
+      auto sit = path_to_summary.find(path_str);
+      if (sit != path_to_summary.end()) summary = sit->second;
+      auto upd = client.AsyncUpdateKnowledgeGraph(tag, path_str, summary);
+      upd.Wait();
+    }
 
     uint64_t key = (static_cast<uint64_t>(tag.major_) << 32) | tag.minor_;
     tag_to_path[key] = path_str;
     ++ingested;
+  }
+  if (already_ingested_by_scheduler > 0) {
+    std::cout << "  (" << already_ingested_by_scheduler
+              << " files already ingested by Phase-1 OperatorScheduler)\n";
   }
   auto t1 = std::chrono::steady_clock::now();
   double ingest_sec = std::chrono::duration<double>(t1 - t0).count();
@@ -455,7 +517,7 @@ int main(int argc, char **argv) {
       // (B) Medium
       {"Locate the unit test that exercises GPU submission on an actual GPU",
        "test_gpu_submission_gpu.cc"},
-      {"Find the code that streams per-layer GGML weights through GpuVMM",
+      {"Find the implementation file that performs per-layer FlexGen weight streaming through GpuVMM",
        "ggml_iowarp_backend.cc"},
       {"Where is the KV-cache manager that interacts with llama.cpp?",
        "kvcache_manager.cc"},
@@ -474,6 +536,17 @@ int main(int argc, char **argv) {
        "embedding_client.h"},
       {"Where is the unit test validating indexing-depth configuration parsing?",
        "test_indexing_depth_config.cc"},
+      // (D) Semantic-only — filename has no overlap with query intent.
+      {"Find the implementation that overlaps GPU compute with weight transfer using double buffering during transformer layer execution",
+       "ggml_iowarp_backend.cc"},
+      {"Where is the deferred-release fix that prevents the GpuVmm page-overlap bug between adjacent transformer layers?",
+       "ggml_iowarp_backend.cc"},
+      {"Locate the file that defines the kCtePoolName and kCtePoolId constants establishing the canonical CTE pool identity",
+       "core_tasks.h"},
+      {"Find the operator that produces the verbose ~85-word natural-language summary for each file at the deepest indexing tier",
+       "summary_operator.cc"},
+      {"Where is the YAML defining the default mapping from file extensions to Acropolis indexing tiers?",
+       "indexing_depth_defaults.yaml"},
   };
 
   int top1 = 0, top5 = 0;

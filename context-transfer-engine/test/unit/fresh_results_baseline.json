@@ -1,0 +1,26 @@
+{
+  "agent": "claude-sonnet-4.7",
+  "arm": "baseline",
+  "results": [
+    {"id": 1, "n_calls": 3, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\kg_backend_qdrant.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 2, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\kg_backend_elasticsearch.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 3, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\kg_backend_neo4j.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 4, "n_calls": 2, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-assimilation-engine\\core\\src\\factory\\hdf5_file_assimilator.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 5, "n_calls": 2, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\tools\\acropolis_depth\\set_depth.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 6, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-runtime\\modules\\MOD_NAME\\test\\test_gpu_submission_gpu.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 7, "n_calls": 2, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\iowarp-llm\\weights\\src\\ggml_iowarp_backend.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 8, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\iowarp-llm\\kvcache\\src\\kvcache_manager.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 9, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\run_e2e_gpu_test.sh", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 10, "n_calls": 2, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\test\\unit\\bench_repo_scan.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 11, "n_calls": 2, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\kg_backend_bm25.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 12, "n_calls": 4, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\kg_backend_elasticsearch.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 13, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\depth_controller.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 14, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\embedding_client.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 15, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\test\\unit\\test_indexing_depth_config.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 16, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\iowarp-llm\\weights\\src\\ggml_iowarp_backend.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 17, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\iowarp-llm\\weights\\src\\ggml_iowarp_backend.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 18, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-transfer-engine\\core\\include\\wrp_cte\\core\\core_tasks.h", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 19, "n_calls": 5, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\context-assimilation-engine\\core\\src\\factory\\summary_operator.cc", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null},
+    {"id": 20, "n_calls": 1, "answer_path": "C:\\Users\\rajni\\Documents\\GPU_OS\\clio-core\\config\\indexing_depth_defaults.yaml", "tokens_in_start": null, "tokens_in_end": null, "tokens_out_start": null, "tokens_out_end": null}
+  ]
+}

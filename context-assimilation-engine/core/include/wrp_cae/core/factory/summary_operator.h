@@ -49,15 +49,20 @@ namespace wrp_cae::core {
  * SummaryOperator - Summarizes a "description" blob using a local LLM
  *
  * Reads the "description" blob from a CTE tag, sends it to an
- * OpenAI-compatible inference endpoint, and writes a 4-8 word
- * "summary" blob back to the same tag.
+ * OpenAI-compatible inference endpoint, and writes a "summary" blob
+ * back to the same tag along with idempotency metadata.
  *
- * Configuration via environment variables:
- *   CAE_SUMMARY_ENDPOINT - Base URL of inference server (e.g., http://localhost:8080/v1)
- *   CAE_SUMMARY_MODEL    - Model name to use (e.g., gemma, qwen)
+ * Configuration: prefer the explicit Config-arg constructor. The legacy
+ * single-arg constructor (kept for backward compatibility with
+ * benchmarks) reads CAE_SUMMARY_* environment variables.
+ *
+ * Idempotency: this operator opts in to BaseOperator's IsCached()
+ * protocol. The OperatorScheduler will skip Execute() when the
+ * "summary" blob's stored meta.input_hash matches a freshly-computed
+ * hash of (description bytes + prompt + model + max_tokens + op_version).
  *
  * Error codes:
- *   -1: Missing CAE_SUMMARY_ENDPOINT or CAE_SUMMARY_MODEL env var
+ *   -1: Missing endpoint or model
  *   -2: Tag not found or could not be created
  *   -3: "description" blob not found in tag
  *   -4: LLM inference call failed
@@ -65,44 +70,57 @@ namespace wrp_cae::core {
  */
 class SummaryOperator : public BaseOperator {
  public:
+  /** Explicit configuration. Any empty/zero field falls back to the
+   *  corresponding CAE_SUMMARY_* env var, else a hardcoded default. */
+  struct Config {
+    std::string endpoint;       // OpenAI-compatible base URL
+    std::string model;          // model id (e.g. "qwen2.5:7b")
+    std::string system_prompt;  // when non-empty, used verbatim (no branching)
+    int max_tokens = 0;         // 0 = use env or default
+
+    /** Build a Config from CAE_SUMMARY_* environment variables. */
+    static Config FromEnv();
+  };
+
+  /** Bump on logic changes that affect output to invalidate cached summaries. */
+  static constexpr int kVersion = 1;
+
+  /** Primary constructor: explicit config. */
+  SummaryOperator(std::shared_ptr<wrp_cte::core::Client> cte_client,
+                  Config config);
+
+  /** Legacy convenience constructor: equivalent to passing
+   *  Config::FromEnv(). Existing benchmark/test callers continue to work
+   *  unchanged. */
   explicit SummaryOperator(std::shared_ptr<wrp_cte::core::Client> cte_client);
 
   int Execute(const std::string& tag_name) override;
 
+  // BaseOperator idempotency contract:
+  int Version() const override { return kVersion; }
+  std::string OutputBlobName() const override { return "summary"; }
+  std::string ComputeInputHash(wrp_cte::core::Tag& tag) const override;
+
  private:
-  /**
-   * Read the "description" blob from a CTE tag
-   * @param tag_name Name of the tag
-   * @return Description text, or empty string on failure
-   */
   std::string ReadDescriptionBlob(const std::string& tag_name);
 
-  /**
-   * Call the LLM inference endpoint to summarize text
-   * @param description The description text to summarize
-   * @return Summary string (4-8 words), or empty string on failure
-   */
-  /**
-   * Call LLM to generate a summary.
-   * @param description The description text or raw metadata
-   * @param has_description_text If true, the description contains human-readable
-   *        text (use summarization prompt). If false, it contains only raw
-   *        metadata (use interpretation prompt).
-   */
-  std::string CallLlm(const std::string& description,
-                       bool has_description_text = true);
+  /** Decide between summarization vs interpretation prompt for HPC data
+   *  in the legacy default path (when config_.system_prompt is empty). */
+  static bool HasHumanDescription(const std::string& description);
 
-  /**
-   * Write the "summary" blob to a CTE tag
-   * @param tag_name Name of the tag
-   * @param summary The summary text to store
-   * @return 0 on success, negative error code on failure
-   */
+  /** Resolve the actual system prompt to send to the LLM:
+   *  config_.system_prompt > CAE_SUMMARY_SYSTEM_PROMPT env > HPC defaults. */
+  std::string ResolveSystemPrompt(const std::string& description) const;
+
+  /** Resolve max_tokens: config_.max_tokens > CAE_SUMMARY_MAX_TOKENS env > 64. */
+  int ResolveMaxTokens() const;
+
+  std::string CallLlm(const std::string& description) const;
+
   int WriteSummaryBlob(const std::string& tag_name, const std::string& summary);
 
   std::shared_ptr<wrp_cte::core::Client> cte_client_;
-  std::string endpoint_;  // from CAE_SUMMARY_ENDPOINT
-  std::string model_;     // from CAE_SUMMARY_MODEL
+  Config config_;
 };
 
 }  // namespace wrp_cae::core

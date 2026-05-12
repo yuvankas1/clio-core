@@ -606,6 +606,45 @@ bool WRP_CTE_CLIENT_INIT(
     const chi::PoolQuery &pool_query = chi::PoolQuery::Dynamic());
 
 /**
+ * BlobMeta - Per-blob metadata for idempotency, provenance, and category
+ * routing. Used by the CAE operator pipeline:
+ *
+ *   - input_hash  : hash of the operator's inputs (description blob bytes +
+ *                   prompt + model + op_version). Operators compare this to
+ *                   their stored output meta to decide whether to re-run.
+ *                   Empty on inputs that no operator has yet consumed.
+ *   - content_hash: hash of the source bytes that produced a description
+ *                   blob. Used by assimilators to short-circuit re-ingest
+ *                   of unchanged files.
+ *   - op_version  : version number of the operator that produced this blob.
+ *                   Bump on logic changes to force invalidation.
+ *   - prompt_hash : hash of the prompt the producing operator used.
+ *   - model_id    : e.g. "qwen2.5:7b".
+ *   - created_at  : ISO 8601 timestamp recorded when the blob was written.
+ *   - category    : data category for routing, e.g. "code", "scientific",
+ *                   "document". Set by assimilator on the description blob;
+ *                   propagated forward by operators.
+ *
+ * Stored as a sibling blob named "<blob_name>.meta" in JSON format.
+ */
+struct BlobMeta {
+  std::string input_hash;
+  std::string content_hash;
+  int op_version = 0;
+  std::string prompt_hash;
+  std::string model_id;
+  std::string created_at;
+  std::string category;
+
+  /** Serialize to JSON string. */
+  std::string ToJson() const;
+
+  /** Parse from JSON string. Missing fields take defaults. Malformed input
+   *  produces a default-constructed BlobMeta and does not throw. */
+  static BlobMeta FromJson(const std::string &json_str);
+};
+
+/**
  * Tag wrapper class - provides convenient API for tag operations
  */
 class Tag {
@@ -730,6 +769,33 @@ class Tag {
    * @return TagId of this tag
    */
   const TagId &GetTagId() const { return tag_id_; }
+
+  // ---------------------------------------------------------------------
+  // Per-blob metadata (B-Full / operator pipeline)
+  // Stored transparently as a sibling blob named "<blob_name>.meta" in
+  // JSON form. Idempotent — overwrites any prior meta.
+  // ---------------------------------------------------------------------
+
+  /** Suffix used to name the sibling metadata blob. */
+  static constexpr const char *kMetaSuffix = ".meta";
+
+  /**
+   * Attach metadata to a blob. Overwrites any prior metadata.
+   */
+  void PutBlobMeta(const std::string &blob_name, const BlobMeta &meta);
+
+  /**
+   * Retrieve metadata attached to a blob. Returns a default-constructed
+   * BlobMeta if no metadata has been attached (i.e. the sibling .meta
+   * blob does not exist or is empty). Use HasBlobMeta() to distinguish
+   * "no meta" from "meta with all default fields".
+   */
+  BlobMeta GetBlobMeta(const std::string &blob_name);
+
+  /**
+   * @return true iff a non-empty metadata blob exists for blob_name.
+   */
+  bool HasBlobMeta(const std::string &blob_name);
 };
 
 }  // namespace wrp_cte::core

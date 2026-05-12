@@ -34,7 +34,11 @@
 #ifndef WRP_CAE_CORE_BASE_OPERATOR_H_
 #define WRP_CAE_CORE_BASE_OPERATOR_H_
 
+#include <chrono>
+#include <ctime>
 #include <string>
+
+#include <wrp_cte/core/core_client.h>
 
 namespace wrp_cae::core {
 
@@ -44,6 +48,14 @@ namespace wrp_cae::core {
  * Operators transform data already stored in CTE. Unlike assimilators
  * (which ingest external data into CTE), operators read existing blobs,
  * process them, and write new blobs back to CTE.
+ *
+ * Idempotency contract (Path B-Full):
+ *   - Operators that opt in to caching override Version(), OutputBlobName(),
+ *     and ComputeInputHash().
+ *   - The OperatorScheduler calls IsCached(tag) before Execute(); if it
+ *     returns true, Execute() is skipped. Operators that do NOT override
+ *     the new virtuals get the safe defaults (empty output name → IsCached
+ *     returns false → Execute always runs), preserving legacy behavior.
  */
 class BaseOperator {
  public:
@@ -55,6 +67,81 @@ class BaseOperator {
    * @return 0 on success, negative error code on failure
    */
   virtual int Execute(const std::string& tag_name) = 0;
+
+  // ---------------------------------------------------------------------
+  // Idempotency contract — operators override these to opt in to caching
+  // ---------------------------------------------------------------------
+
+  /**
+   * Operator-implementation version. Bump on logic changes (e.g. summary
+   * format change) to invalidate all previously-cached outputs. Default
+   * 0 — concrete operators should override.
+   */
+  virtual int Version() const { return 0; }
+
+  /**
+   * Name of the blob this operator writes (e.g. "summary"). When empty,
+   * the operator opts out of idempotency (Execute always runs).
+   */
+  virtual std::string OutputBlobName() const { return ""; }
+
+  /**
+   * Compute a content hash of this operator's inputs for the given tag.
+   * The hash must include EVERY piece of state that affects the output:
+   * input blob bytes, prompt text, model id, hyperparameters, etc. Two
+   * Execute() calls producing identical output must produce identical
+   * hashes.
+   *
+   * Default returns empty string → IsCached() returns false → Execute()
+   * always runs (safe default for non-idempotent operators).
+   */
+  virtual std::string ComputeInputHash(wrp_cte::core::Tag& tag) const {
+    (void)tag;
+    return "";
+  }
+
+  /**
+   * Returns true if Execute() can be safely skipped because the output
+   * blob already exists with metadata matching the current input hash and
+   * operator version.
+   *
+   * Algorithm:
+   *   1. Get OutputBlobName(); if empty → not cacheable, return false.
+   *   2. Get ComputeInputHash(); if empty → not cacheable, return false.
+   *   3. Read tag.GetBlobMeta(output). If op_version doesn't match
+   *      Version() → stale, return false.
+   *   4. If meta.input_hash equals freshly-computed hash → cached, return
+   *      true. Else → return false.
+   */
+  bool IsCached(wrp_cte::core::Tag& tag) const {
+    std::string output = OutputBlobName();
+    if (output.empty()) return false;
+    std::string fresh_hash = ComputeInputHash(tag);
+    if (fresh_hash.empty()) return false;
+    if (!tag.HasBlobMeta(output)) return false;
+    auto meta = tag.GetBlobMeta(output);
+    if (meta.op_version != Version()) return false;
+    return meta.input_hash == fresh_hash;
+  }
+
+  /**
+   * Current UTC time as an ISO 8601 string ("2026-05-04T14:32:18Z").
+   * Convenience for setting BlobMeta::created_at when an operator writes
+   * a new output blob.
+   */
+  static std::string CurrentTimestamp() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm_utc{};
+#if defined(_WIN32)
+    gmtime_s(&tm_utc, &t);
+#else
+    gmtime_r(&t, &tm_utc);
+#endif
+    char buf[25];
+    std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm_utc);
+    return std::string(buf);
+  }
 };
 
 }  // namespace wrp_cae::core

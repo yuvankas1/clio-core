@@ -38,6 +38,9 @@
 #include <hdf5.h>
 #include <wrp_cae/core/factory/hdf5_file_assimilator.h>
 #endif
+#ifdef WRP_CAE_ENABLE_SUMMARY_OP
+#include <wrp_cae/core/factory/operator_scheduler.h>
+#endif
 
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/vector.hpp>
@@ -142,6 +145,28 @@ chi::TaskResume Runtime::ParseOmni(hipc::FullPtr<ParseOmniTask> task,
       task->num_tasks_scheduled_ = tasks_scheduled;
       co_return;
     }
+
+    // Path B-Full: after the assimilator writes description blobs to the
+    // destination tag, run the operator chain (SummaryOperator →
+    // UpdateKnowledgeGraph). Each operator is idempotent — repeat invocations
+    // on the same unchanged content are near-zero cost. Build-gated on
+    // WRP_CAE_ENABLE_SUMMARY_OP so deployments without the LLM operator
+    // stay on the legacy assimilate-only path.
+#ifdef WRP_CAE_ENABLE_SUMMARY_OP
+    if (!assimilation_ctx.dst.empty()) {
+      OperatorScheduler scheduler(cte_client_);
+      int op_rc = scheduler.RunForTag(assimilation_ctx.dst);
+      if (op_rc != 0) {
+        HLOG(kError,
+             "ParseOmni: OperatorScheduler failed for tag '{}' rc={} "
+             "(continuing — assimilation succeeded; downstream indexing "
+             "may be stale)",
+             assimilation_ctx.dst, op_rc);
+        // Non-fatal: assimilation succeeded; the operator chain can be
+        // retried by a periodic walker (B11) or a manual re-assimilate.
+      }
+    }
+#endif
 
     tasks_scheduled++;
   }

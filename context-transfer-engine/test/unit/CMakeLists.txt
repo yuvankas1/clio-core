@@ -100,8 +100,11 @@ if(WRP_CORE_ENABLE_CAE)
     # Compile summary_operator.cc directly into the benchmark to avoid the
     # ABI conflict between the system libcurl that libhdf5 needs and the conda
     # libcurl that the wrp_cae_core_runtime might pull in.
+    # operator_scheduler.cc is the B-Full pipeline orchestrator; it depends on
+    # summary_operator so it lives alongside it in the bench's private sources.
     target_sources(bench_repo_scan PRIVATE
-        ${CMAKE_SOURCE_DIR}/context-assimilation-engine/core/src/factory/summary_operator.cc)
+        ${CMAKE_SOURCE_DIR}/context-assimilation-engine/core/src/factory/summary_operator.cc
+        ${CMAKE_SOURCE_DIR}/context-assimilation-engine/core/src/factory/operator_scheduler.cc)
     target_include_directories(bench_repo_scan PRIVATE
         ${CMAKE_SOURCE_DIR}/context-assimilation-engine/core/include)
     target_link_libraries(bench_repo_scan wrp_cae_core_client)

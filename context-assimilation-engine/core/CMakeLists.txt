@@ -128,6 +128,9 @@ endif()
 if(SUMMARY_OP_ENABLED)
   list(APPEND RUNTIME_SOURCES src/factory/summary_operator.cc)
   list(APPEND RUNTIME_LINK_LIBRARIES CURL::libcurl nlohmann_json::nlohmann_json)
+  # OperatorScheduler depends on SummaryOperator. Only meaningful when
+  # the summary op is compiled in.
+  list(APPEND RUNTIME_SOURCES src/factory/operator_scheduler.cc)
 endif()
 
 add_chimod_runtime(
