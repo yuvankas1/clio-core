@@ -15,17 +15,17 @@
  *   3. The query matches on depth-controller-generated text fragments
  *      (content_kind=hdf5_scientific for L2).
  *
- * Requires: WRP_CTE_ENABLE_KNOWLEDGE_GRAPH=ON at build time.
+ * Requires: CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH=ON at build time.
  */
 
-#include <chimaera/admin/admin_client.h>
-#include <chimaera/bdev/bdev_client.h>
-#include <chimaera/bdev/bdev_tasks.h>
-#include <chimaera/chimaera.h>
-#include <wrp_cte/core/core_client.h>
-#include <wrp_cte/core/core_config.h>
-#include <wrp_cte/core/core_runtime.h>
-#include <wrp_cte/core/core_tasks.h>
+#include <clio_runtime/admin/admin_client.h>
+#include <clio_runtime/bdev/bdev_client.h>
+#include <clio_runtime/bdev/bdev_tasks.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cte/core/core_client.h>
+#include <clio_cte/core/core_config.h>
+#include <clio_cte/core/core_runtime.h>
+#include <clio_cte/core/core_tasks.h>
 
 #include <sys/xattr.h>
 
@@ -41,7 +41,7 @@
 #include "simple_test.h"
 
 namespace fs = std::filesystem;
-using namespace wrp_cte::core;
+using namespace clio::cte::core;
 
 namespace {
 

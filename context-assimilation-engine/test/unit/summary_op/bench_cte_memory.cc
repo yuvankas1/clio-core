@@ -23,11 +23,11 @@
 #include <string>
 #include <vector>
 
-#include <chimaera/chimaera.h>
-#include <wrp_cte/core/core_client.h>
-#include <hermes_shm/util/logging.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cte/core/core_client.h>
+#include <clio_ctp/util/logging.h>
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #endif
@@ -135,7 +135,7 @@ static const std::vector<Question> kQuestions = {
      "deadline"},
 };
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
 
 // ============================================================
 // LLM call helper (reuses curl pattern from SummaryOperator)
@@ -225,16 +225,16 @@ static bool JudgeAnswer(const std::string& endpoint,
          verdict.find("INCORRECT") == std::string::npos;
 }
 
-#endif  // WRP_CAE_ENABLE_SUMMARY_OP
+#endif  // CLIO_CAE_ENABLE_SUMMARY_OP
 
 int main() {
   HLOG(kInfo, "========================================");
   HLOG(kInfo, "CTE Agent Memory Benchmark");
   HLOG(kInfo, "========================================");
 
-#ifndef WRP_CAE_ENABLE_SUMMARY_OP
+#ifndef CLIO_CAE_ENABLE_SUMMARY_OP
   HLOG(kWarning, "Summary operator not compiled. "
-                  "Rebuild with -DWRP_CAE_ENABLE_SUMMARY_OP=ON");
+                  "Rebuild with -DCLIO_CAE_ENABLE_SUMMARY_OP=ON");
   return 0;
 #else
 
@@ -259,7 +259,7 @@ int main() {
     HLOG(kError, "Failed to initialize Chimaera");
     return 1;
   }
-  wrp_cte::core::WRP_CTE_CLIENT_INIT();
+  clio::cte::core::CLIO_CTE_CLIENT_INIT();
 
   // ============================================================
   // Phase 1: Ingest all sessions into CTE
@@ -270,7 +270,7 @@ int main() {
   auto t_ingest_start = Clock::now();
   const std::string tag_name = "bench_agent_memory";
   {
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
     for (const auto& sess : kSessions) {
       std::string blob_data = sess.date + "\n" + sess.content;
       tag.PutBlob(sess.id, blob_data.c_str(), blob_data.size());
@@ -294,7 +294,7 @@ int main() {
   std::string raw_context;
   auto t_raw_retrieve_start = Clock::now();
   {
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
     for (const auto& sess : kSessions) {
       chi::u64 sz = tag.GetBlobSize(sess.id);
       std::vector<char> buf(sz);
@@ -359,8 +359,8 @@ int main() {
   double total_summary_ms = 0.0;
   const std::string summary_tag = "bench_agent_memory_summaries";
   {
-    wrp_cte::core::Tag stag(summary_tag);
-    wrp_cte::core::Tag raw_tag(tag_name);
+    clio::cte::core::Tag stag(summary_tag);
+    clio::cte::core::Tag raw_tag(tag_name);
 
     for (const auto& sess : kSessions) {
       // Read raw session from CTE
@@ -396,7 +396,7 @@ int main() {
   std::string summary_context;
   auto t_sum_retrieve_start = Clock::now();
   {
-    wrp_cte::core::Tag stag(summary_tag);
+    clio::cte::core::Tag stag(summary_tag);
     for (const auto& sess : kSessions) {
       std::string blob_name = "summary_" + sess.id;
       chi::u64 sz = stag.GetBlobSize(blob_name);

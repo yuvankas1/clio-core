@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * Copyright (c) 2024, Gnosis Research Center, Illinois Institute of Technology
  * All rights reserved.
@@ -178,3 +179,9 @@ class BaseAssimilator {
 }  // namespace wrp_cae::core
 
 #endif  // WRP_CAE_CORE_BASE_ASSIMILATOR_H_
+=======
+// Backward-compat forwarding shim.
+// Prefer the new path: <clio_cae/core/factory/base_assimilator.h>.
+// Renamed as part of the WRP_ -> CLIO_ pass.
+#include <clio_cae/core/factory/base_assimilator.h>
+>>>>>>> origin/main

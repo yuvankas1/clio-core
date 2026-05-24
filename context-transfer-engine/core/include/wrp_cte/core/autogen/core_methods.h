@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #ifndef WRP_CTE_CORE_AUTOGEN_METHODS_H_
 #define WRP_CTE_CORE_AUTOGEN_METHODS_H_
 
@@ -90,3 +91,9 @@ inline const std::vector<std::string>& GetMethodNames() {
 }  // namespace wrp_cte::core
 
 #endif  // CORE_AUTOGEN_METHODS_H_
+=======
+// Backward-compat forwarding shim.
+// Prefer the new path: <clio_cte/core/autogen/core_methods.h>.
+// Renamed as part of the WRP_ -> CLIO_ pass.
+#include <clio_cte/core/autogen/core_methods.h>
+>>>>>>> origin/main

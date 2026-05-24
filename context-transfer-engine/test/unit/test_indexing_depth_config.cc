@@ -12,13 +12,13 @@
  * No CTE runtime required — operates on Config object directly.
  */
 
-#include <wrp_cte/core/core_config.h>
+#include <clio_cte/core/core_config.h>
 
 #include <string>
 
 #include "simple_test.h"
 
-using wrp_cte::core::Config;
+using clio::cte::core::Config;
 
 TEST_CASE("Config: indexing_depth default parsed", "[config][depth]") {
   const char *yaml =

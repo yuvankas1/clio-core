@@ -14,7 +14,7 @@
  *   EMB_URL      (default "http://127.0.0.1:9999/v1/embeddings")
  */
 
-#include <wrp_cte/core/kg_backend_qdrant.h>
+#include <clio_cte/core/kg_backend_qdrant.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -23,8 +23,8 @@
 
 #include "simple_test.h"
 
-using wrp_cte::core::QdrantBackend;
-using wrp_cte::core::TagId;
+using clio::cte::core::QdrantBackend;
+using clio::cte::core::TagId;
 
 namespace {
 

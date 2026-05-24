@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run IOWarp Reconnect Integration Test (Chimaera Runtime)
+# Run IOWarp Reconnect Integration Test (CLIO Runtime Runtime)
 #
 # Tests client failover to a new host when the connected server dies:
 # 1. Starts 4-node Docker cluster
@@ -59,6 +59,17 @@ start_docker_cluster() {
     # Tear down any leftover containers from a previous run
     docker compose down 2>/dev/null || true
 
+    # Auto-detect Docker image: use nvidia image if binary requires CUDA
+    if [ -z "${IOWARP_DOCKER_IMAGE:-}" ]; then
+        CHIMAERA_BIN="/workspace/build/bin/chimaera"
+        [ ! -f "$CHIMAERA_BIN" ] && CHIMAERA_BIN="${IOWARP_CORE_ROOT:-/workspace}/build/bin/chimaera"
+        if [ -f "$CHIMAERA_BIN" ] && ldd "$CHIMAERA_BIN" 2>/dev/null | grep -q "libcudart"; then
+            export IOWARP_DOCKER_IMAGE="iowarp/deps-nvidia:latest"
+        else
+            export IOWARP_DOCKER_IMAGE="iowarp/deps-cpu:latest"
+        fi
+    fi
+
     docker compose up -d
 
     log_info "Waiting for containers to initialize..."
@@ -81,7 +92,7 @@ stop_docker_cluster() {
 run_single_test() {
     local filter="$1"
     docker exec iowarp-reconnect-node1 bash -c "
-        export CHI_WITH_RUNTIME=0
+        export CLIO_WITH_RUNTIME=0
         chimaera_reconnect_tests '$filter'
     "
 }

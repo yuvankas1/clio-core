@@ -38,13 +38,13 @@
 #include <hdf5.h>
 #include <nlohmann/json.hpp>
 
-#include <chimaera/chimaera.h>
-#include <wrp_cte/core/core_client.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cte/core/core_client.h>
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
-#include <wrp_cae/core/factory/summary_operator.h>
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
+#include <clio_cae/core/factory/summary_operator.h>
 #endif
-#include <hermes_shm/util/logging.h>
+#include <clio_ctp/util/logging.h>
 
 // Summaries loaded from pre-generated JSON (no runtime LLM dependency)
 
@@ -242,7 +242,7 @@ int main() {
   HLOG(kInfo, "GADGET-2 Data Discovery Benchmark");
   HLOG(kInfo, "========================================");
 
-#ifndef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifndef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
   HLOG(kWarning, "Knowledge graph not compiled.");
   return 0;
 #else
@@ -265,7 +265,7 @@ int main() {
   // Initialize CTE
   bool ok = chi::CHIMAERA_INIT(chi::ChimaeraMode::kClient, true);
   if (!ok) { HLOG(kError, "Chimaera init failed"); return 1; }
-  wrp_cte::core::WRP_CTE_CLIENT_INIT();
+  clio::cte::core::CLIO_CTE_CLIENT_INIT();
 
   // ============================================================
   // Phase 1: Ingest — read headers, create tags, store descriptions
@@ -273,7 +273,7 @@ int main() {
   HLOG(kInfo, "");
   HLOG(kInfo, "=== Phase 1: Ingest GADGET-2 snapshots ===");
 
-  std::unordered_map<std::string, wrp_cte::core::TagId> tag_ids;
+  std::unordered_map<std::string, clio::cte::core::TagId> tag_ids;
   std::unordered_map<std::string, std::string> tag_to_filepath;
 
   auto t_ingest_start = Clock::now();
@@ -281,7 +281,7 @@ int main() {
     snap.description = BuildGadget2Description(snap.filepath, snap.run_name);
     if (snap.description.empty()) continue;
 
-    wrp_cte::core::Tag tag(snap.tag_name);
+    clio::cte::core::Tag tag(snap.tag_name);
     try {
       tag.PutBlob("description", snap.description.c_str(), snap.description.size());
     } catch (...) {}
@@ -306,9 +306,9 @@ int main() {
   HLOG(kInfo, "");
   HLOG(kInfo, "=== Phase 2: Summarize via Summary Operator ===");
 
-  auto cte_client = std::make_shared<wrp_cte::core::Client>();
-  cte_client->Init(WRP_CTE_CLIENT->pool_id_);
-  wrp_cae::core::SummaryOperator summary_op(cte_client);
+  auto cte_client = std::make_shared<clio::cte::core::Client>();
+  cte_client->Init(CLIO_CTE_CLIENT->pool_id_);
+  clio::cae::core::SummaryOperator summary_op(cte_client);
 
   auto t_sum_start = Clock::now();
   int sum_ok = 0, sum_fail = 0;
@@ -320,7 +320,7 @@ int main() {
     // Read description blob for dedup check
     std::string desc;
     try {
-      wrp_cte::core::Tag tag(tag_name);
+      clio::cte::core::Tag tag(tag_name);
       chi::u64 sz = tag.GetBlobSize("description");
       if (sz > 0 && sz < 16384) {
         std::vector<char> buf(sz + 1, '\0');
@@ -332,7 +332,7 @@ int main() {
     // Check dedup cache — same description gets same summary
     if (!desc.empty() && desc_to_summary.count(desc)) {
       try {
-        wrp_cte::core::Tag tag(tag_name);
+        clio::cte::core::Tag tag(tag_name);
         const auto &cached = desc_to_summary[desc];
         tag.PutBlob("summary", cached.c_str(), cached.size());
         sum_ok++;
@@ -347,7 +347,7 @@ int main() {
       // Cache the summary for dedup
       if (!desc.empty()) {
         try {
-          wrp_cte::core::Tag tag(tag_name);
+          clio::cte::core::Tag tag(tag_name);
           chi::u64 sz = tag.GetBlobSize("summary");
           if (sz > 0 && sz < 4096) {
             std::vector<char> buf(sz + 1, '\0');
@@ -386,7 +386,7 @@ int main() {
   int indexed = 0;
   for (const auto &[tag_name, tid] : tag_ids) {
     std::string text;
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
 
     // Read the summary blob (written by Summary Operator in Phase 2)
     try {
@@ -411,7 +411,7 @@ int main() {
     }
     if (text.empty()) text = tag_name;
 
-    auto fut = WRP_CTE_CLIENT->AsyncUpdateKnowledgeGraph(tid, tag_name, text);
+    auto fut = CLIO_CTE_CLIENT->AsyncUpdateKnowledgeGraph(tid, tag_name, text);
     fut.Wait();
     indexed++;
   }
@@ -424,10 +424,10 @@ int main() {
   // ============================================================
   HLOG(kInfo, "");
   HLOG(kInfo, "=== Phase 3.5: Sync Global IDF ===");
-  auto sync_fut = WRP_CTE_CLIENT->AsyncSyncKnowledgeGraph();
+  auto sync_fut = CLIO_CTE_CLIENT->AsyncSyncKnowledgeGraph();
   sync_fut.Wait();
   auto *sync_r = sync_fut.get();
-  auto dist_fut = WRP_CTE_CLIENT->AsyncSyncKnowledgeGraph(
+  auto dist_fut = CLIO_CTE_CLIENT->AsyncSyncKnowledgeGraph(
       chi::PoolQuery::Broadcast(), true,
       sync_r->global_n_, sync_r->global_total_terms_, sync_r->global_df_);
   dist_fut.Wait();
@@ -508,7 +508,7 @@ int main() {
     HLOG(kInfo, "  Q{:02d} [{}] \"{}\"", i + 1, q.category, q.text);
 
     auto t0 = Clock::now();
-    auto fut = WRP_CTE_CLIENT->AsyncSemanticQuery(q.text, 10);
+    auto fut = CLIO_CTE_CLIENT->AsyncSemanticQuery(q.text, 10);
     fut.Wait();
     auto t1 = Clock::now();
     double ms = Ms(t1 - t0).count();

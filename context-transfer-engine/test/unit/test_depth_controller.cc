@@ -16,8 +16,8 @@
  *                 layer appends a caller-supplied LLM summary on top.
  */
 
-#include <wrp_cte/core/depth_controller.h>
-#include <wrp_cte/core/core_tasks.h>
+#include <clio_cte/core/depth_controller.h>
+#include <clio_cte/core/core_tasks.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -34,12 +34,12 @@
 #include "simple_test.h"
 
 namespace fs = std::filesystem;
-using wrp_cte::core::DepthController;
-using wrp_cte::core::DepthDefaults;
-using wrp_cte::core::EmbeddingClient;
-using wrp_cte::core::IndexDepth;
-using wrp_cte::core::IndexPayload;
-using wrp_cte::core::TagId;
+using clio::cte::core::DepthController;
+using clio::cte::core::DepthDefaults;
+using clio::cte::core::EmbeddingClient;
+using clio::cte::core::IndexDepth;
+using clio::cte::core::IndexPayload;
+using clio::cte::core::TagId;
 
 namespace {
 
@@ -63,9 +63,9 @@ TEST_CASE("IndexDepth values are 0..2", "[depth][enum]") {
 }
 
 TEST_CASE("IndexDepthName returns human-readable labels", "[depth][enum]") {
-  REQUIRE(std::string(wrp_cte::core::IndexDepthName(IndexDepth::kNameOnly)) == "L0-name");
-  REQUIRE(std::string(wrp_cte::core::IndexDepthName(IndexDepth::kMetadata)) == "L1-metadata");
-  REQUIRE(std::string(wrp_cte::core::IndexDepthName(IndexDepth::kContent))  == "L2-content");
+  REQUIRE(std::string(clio::cte::core::IndexDepthName(IndexDepth::kNameOnly)) == "L0-name");
+  REQUIRE(std::string(clio::cte::core::IndexDepthName(IndexDepth::kMetadata)) == "L1-metadata");
+  REQUIRE(std::string(clio::cte::core::IndexDepthName(IndexDepth::kContent))  == "L2-content");
 }
 
 // ---------------------------------------------------------------------------
@@ -255,18 +255,18 @@ TEST_CASE("L1 magic-byte fallback detects Parquet", "[depth][levels][magic]") {
 // ---------------------------------------------------------------------------
 
 TEST_CASE("TagInfo default index_depth is L0", "[depth][taginfo]") {
-  wrp_cte::core::TagInfo info("my_tag", MakeTag(1, 1));
+  clio::cte::core::TagInfo info("my_tag", MakeTag(1, 1));
   REQUIRE(info.index_depth_ == IndexDepth::kNameOnly);
 }
 
 TEST_CASE("TagInfo depth field round-trips through copy", "[depth][taginfo]") {
-  wrp_cte::core::TagInfo info("my_tag", MakeTag(1, 1));
+  clio::cte::core::TagInfo info("my_tag", MakeTag(1, 1));
   info.index_depth_ = IndexDepth::kContent;
 
-  wrp_cte::core::TagInfo copy = info;
+  clio::cte::core::TagInfo copy = info;
   REQUIRE(copy.index_depth_ == IndexDepth::kContent);
 
-  wrp_cte::core::TagInfo assigned;
+  clio::cte::core::TagInfo assigned;
   assigned = info;
   REQUIRE(assigned.index_depth_ == IndexDepth::kContent);
 }

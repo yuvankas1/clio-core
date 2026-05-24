@@ -35,8 +35,20 @@
  * Task implementation
  */
 
-#include "chimaera/task.h"
+#include "clio_runtime/task.h"
+#include "clio_runtime/ipc_manager.h"
 
-namespace chi {
+namespace clio::run {
 
-}  // namespace chi
+void Task::DestroyRunCtx() {
+  if (host_run_ctx_) {
+    delete reinterpret_cast<RunContext *>(host_run_ctx_);
+    host_run_ctx_ = 0;
+  }
+}
+
+Task::~Task() {
+  DestroyRunCtx();
+}
+
+}  // namespace clio::run

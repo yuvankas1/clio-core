@@ -21,10 +21,10 @@ enable_testing()
 # yaml-cpp is already found by root CMakeLists.txt
 
 # Conditionally find HDF5 if enabled
-if(WRP_CAE_ENABLE_HDF5)
+if(CLIO_CAE_ENABLE_HDF5)
   # HDF5 is already found by root CMakeLists.txt
   if(NOT HDF5_FOUND)
-    message(WARNING "WRP_CAE_ENABLE_HDF5 is ON but HDF5 not found. HDF5 tests will be disabled.")
+    message(WARNING "CLIO_CAE_ENABLE_HDF5 is ON but HDF5 not found. HDF5 tests will be disabled.")
     set(HDF5_ENABLED FALSE)
   else()
     set(HDF5_ENABLED TRUE)
@@ -67,10 +67,10 @@ function(add_cae_unit_test TEST_NAME TEST_SOURCE)
   # Link common dependencies
   target_link_libraries(${TEST_NAME}
     PRIVATE
-      wrp_cae_core_client
-      wrp_cte_core_client
+      clio_cae_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       ${ARG_EXTRA_LIBS}
       ${_maybe_curl}
   )
@@ -167,11 +167,11 @@ target_include_directories(test_cae_comprehensive
 
 target_link_libraries(test_cae_comprehensive
   PRIVATE
-    wrp_cae_core_client
-    wrp_cte_core_client
-    chimaera::admin_runtime
-    chimaera::bdev_runtime
-    hshm::cxx
+    clio_cae_core_client
+    clio_cte_core_client
+    clio_admin_runtime
+    clio_bdev_runtime
+    ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -220,7 +220,7 @@ set_tests_properties(
 # - Tests dataset discovery and transfer
 # - Validates metadata and tensor information
 # - Tests hierarchical group structures
-# Note: Requires WRP_CORE_ENABLE_HDF5=ON
+# Note: Requires CLIO_CORE_ENABLE_HDF5=ON
 #------------------------------------------------------------------------------
 if(HDF5_ENABLED)
   add_cae_unit_test(cae_hdf5_assim
@@ -238,7 +238,7 @@ endif()
 #------------------------------------------------------------------------------
 # Tests the SummaryOperator which reads a "description" blob and
 # generates a 4-8 word summary via a local LLM inference endpoint.
-# Requires: WRP_CAE_ENABLE_SUMMARY_OP=ON, CURL, nlohmann_json
+# Requires: CLIO_CAE_ENABLE_SUMMARY_OP=ON, CURL, nlohmann_json
 # Runtime: CAE_SUMMARY_ENDPOINT and CAE_SUMMARY_MODEL env vars
 # Note: Test SKIPs gracefully if env vars are not set
 #------------------------------------------------------------------------------
@@ -251,10 +251,10 @@ if(SUMMARY_OP_ENABLED)
   )
   target_link_libraries(cae_summary_op
     PRIVATE
-      wrp_cae_core_client
-      wrp_cte_core_client
+      clio_cae_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       CURL::libcurl
       nlohmann_json::nlohmann_json
   )
@@ -274,10 +274,10 @@ if(SUMMARY_OP_ENABLED)
   )
   target_link_libraries(cae_summary_bench
     PRIVATE
-      wrp_cae_core_client
-      wrp_cte_core_client
+      clio_cae_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       CURL::libcurl
       nlohmann_json::nlohmann_json
   )
@@ -290,9 +290,9 @@ if(SUMMARY_OP_ENABLED)
   )
   target_link_libraries(cae_memory_bench
     PRIVATE
-      wrp_cte_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       CURL::libcurl
       nlohmann_json::nlohmann_json
   )
@@ -301,19 +301,19 @@ if(SUMMARY_OP_ENABLED)
 
   # Benchmark: Knowledge Graph Pipeline — full end-to-end (run manually)
   # Requires both SUMMARY_OP and KNOWLEDGE_GRAPH enabled
-  if(WRP_CTE_ENABLE_KNOWLEDGE_GRAPH)
+  if(CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH)
     add_executable(cae_kg_bench
       ${CMAKE_CURRENT_SOURCE_DIR}/summary_op/bench_kg_pipeline.cc
     )
     target_link_libraries(cae_kg_bench
       PRIVATE
-        wrp_cte_core_client
+        clio_cte_core_client
         chimaera::cxx
-        hshm::configure
+        ctp::configure
         CURL::libcurl
         nlohmann_json::nlohmann_json
     )
-    target_compile_definitions(cae_kg_bench PRIVATE WRP_CTE_ENABLE_KNOWLEDGE_GRAPH)
+    target_compile_definitions(cae_kg_bench PRIVATE CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH)
     target_include_directories(cae_kg_bench PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     install(TARGETS cae_kg_bench DESTINATION bin)
   endif()
@@ -323,23 +323,23 @@ endif()
 # Requires KNOWLEDGE_GRAPH + CURL + HDF5 (skipped otherwise so the rest of the
 # tree still configures when optional deps are missing).
 find_package(CURL QUIET)
-if(WRP_CTE_ENABLE_KNOWLEDGE_GRAPH AND CURL_FOUND AND WRP_CORE_ENABLE_HDF5)
+if(CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH AND CURL_FOUND AND CLIO_CORE_ENABLE_HDF5)
   add_executable(cae_hdf5_discovery_bench
     ${CMAKE_CURRENT_SOURCE_DIR}/hdf5_assim/bench_hdf5_discovery.cc
     ${CMAKE_CURRENT_SOURCE_DIR}/../../core/src/factory/summary_operator.cc
   )
   target_link_libraries(cae_hdf5_discovery_bench
     PRIVATE
-      wrp_cae_core_client
-      wrp_cte_core_client
+      clio_cae_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       nlohmann_json::nlohmann_json
       CURL::libcurl
   )
   target_compile_definitions(cae_hdf5_discovery_bench PRIVATE
-    WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
-    WRP_CAE_ENABLE_SUMMARY_OP
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
+    CLIO_CAE_ENABLE_SUMMARY_OP
   )
   target_include_directories(cae_hdf5_discovery_bench PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -354,17 +354,17 @@ if(WRP_CTE_ENABLE_KNOWLEDGE_GRAPH AND CURL_FOUND AND WRP_CORE_ENABLE_HDF5)
   )
   target_link_libraries(test_wrf_discovery
     PRIVATE
-      wrp_cae_core_client
-      wrp_cte_core_client
+      clio_cae_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       ${HDF5_LIBRARIES}
       nlohmann_json::nlohmann_json
       CURL::libcurl
   )
   target_compile_definitions(test_wrf_discovery PRIVATE
-    WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
-    WRP_CAE_ENABLE_SUMMARY_OP
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
+    CLIO_CAE_ENABLE_SUMMARY_OP
   )
   target_include_directories(test_wrf_discovery PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -380,10 +380,10 @@ if(WRP_CTE_ENABLE_KNOWLEDGE_GRAPH AND CURL_FOUND AND WRP_CORE_ENABLE_HDF5)
   )
   target_link_libraries(test_gadget2_discovery
     PRIVATE
-      wrp_cae_core_client
-      wrp_cte_core_client
+      clio_cae_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       ${HDF5_LIBRARIES}
       nlohmann_json::nlohmann_json
   )
@@ -396,10 +396,10 @@ if(WRP_CTE_ENABLE_KNOWLEDGE_GRAPH AND CURL_FOUND AND WRP_CORE_ENABLE_HDF5)
   endif()
   if(CURL_FOUND)
     target_link_libraries(test_gadget2_discovery PRIVATE CURL::libcurl)
-    target_compile_definitions(test_gadget2_discovery PRIVATE WRP_CAE_ENABLE_SUMMARY_OP)
+    target_compile_definitions(test_gadget2_discovery PRIVATE CLIO_CAE_ENABLE_SUMMARY_OP)
   endif()
   target_compile_definitions(test_gadget2_discovery PRIVATE
-    WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
   )
   target_include_directories(test_gadget2_discovery PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -429,37 +429,37 @@ if(WRP_CTE_ENABLE_KNOWLEDGE_GRAPH AND CURL_FOUND AND WRP_CORE_ENABLE_HDF5)
   )
   target_link_libraries(test_kg_backends
     PRIVATE
-      wrp_cte_core_client
+      clio_cte_core_client
       chimaera::cxx
-      hshm::configure
+      ctp::configure
       nlohmann_json::nlohmann_json
   )
   target_compile_definitions(test_kg_backends PRIVATE
-    WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
   )
   target_include_directories(test_kg_backends PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
   )
 
   # Optional backends
-  option(WRP_CTE_KG_ELASTICSEARCH "Enable Elasticsearch KG backend" OFF)
-  option(WRP_CTE_KG_NEO4J "Enable Neo4j KG backend" OFF)
-  option(WRP_CTE_KG_QDRANT "Enable Qdrant KG backend" OFF)
+  option(CLIO_CTE_KG_ELASTICSEARCH "Enable Elasticsearch KG backend" OFF)
+  option(CLIO_CTE_KG_NEO4J "Enable Neo4j KG backend" OFF)
+  option(CLIO_CTE_KG_QDRANT "Enable Qdrant KG backend" OFF)
 
-  if(WRP_CTE_KG_ELASTICSEARCH OR WRP_CTE_KG_NEO4J OR WRP_CTE_KG_QDRANT)
+  if(CLIO_CTE_KG_ELASTICSEARCH OR CLIO_CTE_KG_NEO4J OR CLIO_CTE_KG_QDRANT)
     target_include_directories(test_kg_backends PRIVATE
       ${CMAKE_SOURCE_DIR}/external/httplib
     )
   endif()
 
-  if(WRP_CTE_KG_ELASTICSEARCH)
-    target_compile_definitions(test_kg_backends PRIVATE WRP_CTE_KG_ELASTICSEARCH)
+  if(CLIO_CTE_KG_ELASTICSEARCH)
+    target_compile_definitions(test_kg_backends PRIVATE CLIO_CTE_KG_ELASTICSEARCH)
   endif()
-  if(WRP_CTE_KG_NEO4J)
-    target_compile_definitions(test_kg_backends PRIVATE WRP_CTE_KG_NEO4J)
+  if(CLIO_CTE_KG_NEO4J)
+    target_compile_definitions(test_kg_backends PRIVATE CLIO_CTE_KG_NEO4J)
   endif()
-  if(WRP_CTE_KG_QDRANT)
-    target_compile_definitions(test_kg_backends PRIVATE WRP_CTE_KG_QDRANT)
+  if(CLIO_CTE_KG_QDRANT)
+    target_compile_definitions(test_kg_backends PRIVATE CLIO_CTE_KG_QDRANT)
   endif()
 
   install(TARGETS test_kg_backends DESTINATION bin)
@@ -514,12 +514,12 @@ message(STATUS "  Error Handling Test:      ENABLED")
 if(HDF5_ENABLED)
   message(STATUS "  HDF5 Format Test:         ENABLED")
 else()
-  message(STATUS "  HDF5 Format Test:         DISABLED (set -DWRP_CORE_ENABLE_HDF5=ON to enable)")
+  message(STATUS "  HDF5 Format Test:         DISABLED (set -DCLIO_CORE_ENABLE_HDF5=ON to enable)")
 endif()
 if(SUMMARY_OP_ENABLED)
   message(STATUS "  Summary Operator Test:    ENABLED")
 else()
-  message(STATUS "  Summary Operator Test:    DISABLED (set -DWRP_CAE_ENABLE_SUMMARY_OP=ON to enable)")
+  message(STATUS "  Summary Operator Test:    DISABLED (set -DCLIO_CAE_ENABLE_SUMMARY_OP=ON to enable)")
 endif()
 message(STATUS "")
 message(STATUS "Run tests with:")

@@ -1,31 +1,31 @@
 cmake_minimum_required(VERSION 3.20)
-project(wrp_cae_core VERSION 1.0.0)
+project(clio_cae_core VERSION 1.0.0)
 
 #------------------------------------------------------------------------------
 # ChiMod utilities and dependencies
 #------------------------------------------------------------------------------
-# ChiMod utilities are now provided by IowarpCoreCommon.cmake in /workspace/cmake
+# ChiMod utilities are now provided by ClioCoreCommon.cmake in /workspace/cmake
 # All find_package calls are handled by root CMakeLists.txt
-# Targets chimaera::cxx, wrp_cte::core_client, etc. are already available
+# Targets chimaera::cxx, clio::cte::core_client, etc. are already available
 
-# All required packages (chimaera, wrp_cte_core, yaml-cpp) are already found
-# by IowarpCoreCommon.cmake in the root CMakeLists.txt
+# All required packages (chimaera, clio_cte_core, yaml-cpp) are already found
+# by ClioCoreCommon.cmake in the root CMakeLists.txt
 
 #------------------------------------------------------------------------------
 # Optional HDF5 support (found by root CMakeLists.txt)
 #------------------------------------------------------------------------------
-if(WRP_CAE_ENABLE_HDF5)
+if(CLIO_CAE_ENABLE_HDF5)
   # HDF5 is already found by root CMakeLists.txt
 
   if(HDF5_FOUND)
     message(STATUS "CAE HDF5 support: ENABLED")
-    add_compile_definitions(WRP_CAE_ENABLE_HDF5)
+    add_compile_definitions(CLIO_CAE_ENABLE_HDF5)
     set(HDF5_ENABLED TRUE)
   else()
-    message(WARNING "WRP_CAE_ENABLE_HDF5 is ON but HDF5 package not found")
+    message(WARNING "CLIO_CAE_ENABLE_HDF5 is ON but HDF5 package not found")
     message(WARNING "HDF5 support will be disabled. Install HDF5 to enable.")
     set(HDF5_ENABLED FALSE)
-    set(WRP_CAE_ENABLE_HDF5 OFF PARENT_SCOPE)
+    set(CLIO_CAE_ENABLE_HDF5 OFF PARENT_SCOPE)
   endif()
 else()
   message(STATUS "CAE HDF5 support: DISABLED")
@@ -62,17 +62,17 @@ endif()
 #------------------------------------------------------------------------------
 # Optional Summary Operator support (requires CURL + nlohmann_json)
 #------------------------------------------------------------------------------
-if(WRP_CAE_ENABLE_SUMMARY_OP)
+if(CLIO_CAE_ENABLE_SUMMARY_OP)
   find_package(CURL)
   # nlohmann_json may already be found by root CMakeLists.txt (for Globus)
   find_package(nlohmann_json QUIET)
 
   if(CURL_FOUND AND nlohmann_json_FOUND)
     message(STATUS "CAE Summary Operator: ENABLED")
-    add_compile_definitions(WRP_CAE_ENABLE_SUMMARY_OP)
+    add_compile_definitions(CLIO_CAE_ENABLE_SUMMARY_OP)
     set(SUMMARY_OP_ENABLED TRUE)
   else()
-    message(WARNING "WRP_CAE_ENABLE_SUMMARY_OP is ON but required dependencies not found:")
+    message(WARNING "CLIO_CAE_ENABLE_SUMMARY_OP is ON but required dependencies not found:")
     if(NOT CURL_FOUND)
       message(WARNING "  - libcurl not found (install libcurl4-openssl-dev)")
     endif()
@@ -81,7 +81,7 @@ if(WRP_CAE_ENABLE_SUMMARY_OP)
     endif()
     message(WARNING "Summary Operator will be disabled. Install dependencies to enable.")
     set(SUMMARY_OP_ENABLED FALSE)
-    set(WRP_CAE_ENABLE_SUMMARY_OP OFF)
+    set(CLIO_CAE_ENABLE_SUMMARY_OP OFF)
   endif()
 else()
   message(STATUS "CAE Summary Operator: DISABLED")
@@ -91,11 +91,11 @@ endif()
 #------------------------------------------------------------------------------
 # Client Library
 #------------------------------------------------------------------------------
-add_chimod_client(
+add_clio_module_client(
   SOURCES
     src/core_client.cc
   LINK_LIBRARIES
-    wrp_cte_core_client
+    clio_cte_core_client
 )
 
 #------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ set(RUNTIME_SOURCES
 )
 
 set(RUNTIME_LINK_LIBRARIES
-  wrp_cte_core_client
+  clio_cte_core_client
 )
 
 # Conditionally add HDF5 assimilator if enabled
@@ -133,7 +133,7 @@ if(SUMMARY_OP_ENABLED)
   list(APPEND RUNTIME_SOURCES src/factory/operator_scheduler.cc)
 endif()
 
-add_chimod_runtime(
+add_clio_module_runtime(
   SOURCES
     ${RUNTIME_SOURCES}
   LINK_LIBRARIES
@@ -142,22 +142,39 @@ add_chimod_runtime(
 
 # Add HDF5 include directories to runtime if enabled
 if(HDF5_ENABLED)
-  target_include_directories(wrp_cae_core_runtime PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_include_directories(clio_cae_core_runtime PRIVATE ${HDF5_INCLUDE_DIRS})
 endif()
 
 #------------------------------------------------------------------------------
 # Utilities
 #------------------------------------------------------------------------------
 
-# wrp_cae_omni utility
-add_executable(wrp_cae_omni util/wrp_cae_omni.cc)
-target_link_libraries(wrp_cae_omni
+# clio_cae utility (CAE OMNI ingest driver). Installed as `clio_cae`;
+# the legacy `clio_cae_omni` name is preserved as an install-time symlink
+# so out-of-tree scripts and pipelines keep working.
+add_executable(clio_cae util/clio_cae.cc)
+target_link_libraries(clio_cae
   PRIVATE
-    wrp_cae_core_client
+    clio_cae_core_client
     chimaera::cxx
-    hshm::configure
+    ctp::configure
 )
-install(TARGETS wrp_cae_omni DESTINATION bin)
+install(TARGETS clio_cae DESTINATION bin)
+
+# Install `clio_cae_omni` as a symlink to `clio_cae` (Windows: copy fallback).
+install(CODE "
+  set(_src \"\${CMAKE_INSTALL_PREFIX}/bin/clio_cae\")
+  set(_dst \"\${CMAKE_INSTALL_PREFIX}/bin/clio_cae_omni\")
+  if(EXISTS \"\${_src}\")
+    if(WIN32)
+      file(INSTALL \"\${_src}\" DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin\"
+           RENAME clio_cae_omni.exe)
+    else()
+      execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink clio_cae \"\${_dst}\")
+    endif()
+    message(STATUS \"Installed clio_cae_omni -> clio_cae symlink at \${_dst}\")
+  endif()
+")
 
 #------------------------------------------------------------------------------
 # Tests
@@ -171,8 +188,8 @@ if(BUILD_TESTING)
 
   # Install common test configuration
   install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../test/unit/wrp_config.yaml
+    ${CMAKE_CURRENT_SOURCE_DIR}/../test/unit/clio_config.yaml
     ${CMAKE_CURRENT_SOURCE_DIR}/../test/unit/README.md
-    DESTINATION share/wrp_cae/test
+    DESTINATION share/clio_cae/test
   )
 endif()

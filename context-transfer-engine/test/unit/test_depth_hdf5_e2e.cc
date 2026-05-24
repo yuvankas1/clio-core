@@ -11,12 +11,12 @@
  *   - The rich text is searchable through the BM25 backend
  */
 
-#include <chimaera/admin/admin_client.h>
-#include <chimaera/chimaera.h>
-#include <wrp_cte/core/core_client.h>
-#include <wrp_cte/core/core_config.h>
-#include <wrp_cte/core/core_runtime.h>
-#include <wrp_cte/core/core_tasks.h>
+#include <clio_runtime/admin/admin_client.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cte/core/core_client.h>
+#include <clio_cte/core/core_config.h>
+#include <clio_cte/core/core_runtime.h>
+#include <clio_cte/core/core_tasks.h>
 
 #include <hdf5.h>
 #include <sys/xattr.h>
@@ -33,7 +33,7 @@
 #include "simple_test.h"
 
 namespace fs = std::filesystem;
-using namespace wrp_cte::core;
+using namespace clio::cte::core;
 
 namespace {
 

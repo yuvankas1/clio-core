@@ -1,4 +1,4 @@
-# CMakeLists.txt for Chimaera core unit tests
+# CMakeLists.txt for CLIO Runtime core unit tests
 # Note: Module-specific tests are now in their respective module directories:
 #   - modules/admin/test/
 #   - modules/bdev/test/
@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Include common utilities for dependency management
-if(NOT COMMAND add_chimod_client)
+if(NOT COMMAND add_clio_module_client)
   include(${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/ChimaeraCommon.cmake)
 endif()
 
@@ -92,20 +92,20 @@ set(CLIENT_RETRY_TEST_SOURCES
 # GPU IPC AllocateBuffer test executable (only if CUDA or HIP is enabled)
 set(IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET test_ipc_allocate_buffer_gpu)
 set(IPC_ALLOCATE_BUFFER_GPU_TEST_SOURCES
-  test_ipc_allocate_buffer_gpu.cc
+  gpu/test_ipc_allocate_buffer_gpu.cc
 )
 
 # Create core test executable
 add_executable(${TEST_TARGET} ${TEST_SOURCES})
 
 target_include_directories(${TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
 )
 
 target_link_libraries(${TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -122,13 +122,13 @@ set_target_properties(${TEST_TARGET} PROPERTIES
 add_executable(${IPC_ALLOCATE_BUFFER_TEST_TARGET} ${IPC_ALLOCATE_BUFFER_TEST_SOURCES})
 
 target_include_directories(${IPC_ALLOCATE_BUFFER_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For test utilities
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For test utilities
 )
 
 target_link_libraries(${IPC_ALLOCATE_BUFFER_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -162,18 +162,18 @@ set_target_properties(${UNORDERED_MAP_LL_TEST_TARGET} PROPERTIES
 add_executable(${SAVE_LOAD_TASK_TEST_TARGET} ${SAVE_LOAD_TASK_TEST_SOURCES})
 
 target_include_directories(${SAVE_LOAD_TASK_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
-  ${CHIMAERA_ROOT}/modules/admin/include  # For admin tasks
-  ${CHIMAERA_ROOT}/modules/bdev/include   # For bdev tasks
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/modules/admin/include  # For admin tasks
+  ${CLIO_RUN_ROOT}/modules/bdev/include   # For bdev tasks
 )
 
 target_link_libraries(${SAVE_LOAD_TASK_TEST_TARGET}
-  chimaera_admin_runtime          # Admin module runtime
-  chimaera_admin_client           # Admin module client
-  chimaera_bdev_runtime           # Bdev module runtime
-  chimaera_bdev_client            # Bdev module client
-  hshm::cxx                       # HermesShm library
+  clio_admin_runtime          # Admin module runtime
+  clio_admin_client           # Admin module client
+  clio_bdev_runtime           # Bdev module runtime
+  clio_bdev_client            # Bdev module client
+  ctp::cxx                       # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}       # Threading support
 )
 
@@ -190,18 +190,18 @@ set_target_properties(${SAVE_LOAD_TASK_TEST_TARGET} PROPERTIES
 add_executable(${LOCAL_TASK_ARCHIVE_TEST_TARGET} ${LOCAL_TASK_ARCHIVE_TEST_SOURCES})
 
 target_include_directories(${LOCAL_TASK_ARCHIVE_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
-  ${CHIMAERA_ROOT}/modules/admin/include  # For admin tasks
-  ${CHIMAERA_ROOT}/modules/bdev/include   # For bdev tasks
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/modules/admin/include  # For admin tasks
+  ${CLIO_RUN_ROOT}/modules/bdev/include   # For bdev tasks
 )
 
 target_link_libraries(${LOCAL_TASK_ARCHIVE_TEST_TARGET}
-  chimaera_admin_runtime          # Admin module runtime
-  chimaera_admin_client           # Admin module client
-  chimaera_bdev_runtime           # Bdev module runtime
-  chimaera_bdev_client            # Bdev module client
-  hshm::cxx                       # HermesShm library
+  clio_admin_runtime          # Admin module runtime
+  clio_admin_client           # Admin module client
+  clio_bdev_runtime           # Bdev module runtime
+  clio_bdev_client            # Bdev module client
+  ctp::cxx                       # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}       # Threading support
 )
 
@@ -214,17 +214,21 @@ set_target_properties(${LOCAL_TASK_ARCHIVE_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
-# Create Per-Process Shared Memory test executable
+# Create Per-Process Shared Memory test executable.
+# POSIX-only: uses fork()/waitpid()/setenv() — no Windows equivalent that
+# keeps the same shared-page semantics (CreateProcess gives a fresh address
+# space, defeating the inheritance the test relies on).
+if(NOT WIN32)
 add_executable(${PER_PROCESS_SHM_TEST_TARGET} ${PER_PROCESS_SHM_TEST_SOURCES})
 
 target_include_directories(${PER_PROCESS_SHM_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
 )
 
 target_link_libraries(${PER_PROCESS_SHM_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -236,57 +240,60 @@ set_target_properties(${PER_PROCESS_SHM_TEST_TARGET} PROPERTIES
 set_target_properties(${PER_PROCESS_SHM_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+endif()
 
-# Create Autogen Coverage test executable
+# Create Autogen Coverage test executable (requires CAE)
+if(CLIO_CORE_ENABLE_CAE)
 add_executable(${AUTOGEN_COVERAGE_TEST_TARGET} ${AUTOGEN_COVERAGE_TEST_SOURCES})
 
-target_include_directories(${AUTOGEN_COVERAGE_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
-  ${CHIMAERA_ROOT}/modules/admin/include
-  ${CHIMAERA_ROOT}/modules/bdev/include
-  ${CHIMAERA_ROOT}/modules/MOD_NAME/include
-)
+  target_include_directories(${AUTOGEN_COVERAGE_TEST_TARGET} PRIVATE
+    ${CLIO_RUN_ROOT}/include
+    ${CLIO_RUN_ROOT}/test  # For simple_test.h
+    ${CLIO_RUN_ROOT}/modules/admin/include
+    ${CLIO_RUN_ROOT}/modules/bdev/include
+    ${CLIO_RUN_ROOT}/modules/MOD_NAME/include
+  )
 
-target_link_libraries(${AUTOGEN_COVERAGE_TEST_TARGET}
-  chimaera_MOD_NAME_runtime
-  chimaera_MOD_NAME_client
-  wrp_cte_core_runtime
-  wrp_cae_core_runtime
-  wrp_cae_core_client
-  chimaera_bdev_runtime
-  chimaera_admin_runtime
-  wrp_cte_core_client
-  chimaera_bdev_client
-  chimaera_admin_client
-  chimaera_cxx
-  hshm::cxx
-  ${CMAKE_THREAD_LIBS_INIT}
-)
+  target_link_libraries(${AUTOGEN_COVERAGE_TEST_TARGET}
+    chimaera_MOD_NAME_runtime
+    chimaera_MOD_NAME_client
+    clio_cte_core_runtime
+    clio_cae_core_runtime
+    clio_cae_core_client
+    clio_bdev_runtime
+    clio_admin_runtime
+    clio_cte_core_client
+    clio_bdev_client
+    clio_admin_client
+    chimaera_cxx
+    ctp::cxx
+    ${CMAKE_THREAD_LIBS_INIT}
+  )
 
-set_target_properties(${AUTOGEN_COVERAGE_TEST_TARGET} PROPERTIES
-  CXX_STANDARD 20
-  CXX_STANDARD_REQUIRED ON
-)
+  set_target_properties(${AUTOGEN_COVERAGE_TEST_TARGET} PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+  )
 
 set_target_properties(${AUTOGEN_COVERAGE_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+endif()  # CLIO_CORE_ENABLE_CAE
 
 # Create Streaming test executable
 add_executable(${STREAMING_TEST_TARGET} ${STREAMING_TEST_SOURCES})
 
 target_include_directories(${STREAMING_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
-  ${CHIMAERA_ROOT}/modules/MOD_NAME/include  # For MOD_NAME client and tasks
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/modules/MOD_NAME/include  # For MOD_NAME client and tasks
 )
 
 target_link_libraries(${STREAMING_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
+  chimaera_cxx               # Main CLIO Runtime library
   chimaera_MOD_NAME_client   # MOD_NAME client
   chimaera_MOD_NAME_runtime  # MOD_NAME runtime
-  hshm::cxx                  # HermesShm library
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -299,17 +306,19 @@ set_target_properties(${STREAMING_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
-# Create External Client test executable
+# Create External Client test executable.
+# POSIX-only: drives a forked client process via fork()/waitpid()/SIGKILL.
+if(NOT WIN32)
 add_executable(${EXTERNAL_CLIENT_TEST_TARGET} ${EXTERNAL_CLIENT_TEST_SOURCES})
 
 target_include_directories(${EXTERNAL_CLIENT_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
 )
 
 target_link_libraries(${EXTERNAL_CLIENT_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -321,18 +330,19 @@ set_target_properties(${EXTERNAL_CLIENT_TEST_TARGET} PROPERTIES
 set_target_properties(${EXTERNAL_CLIENT_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+endif()
 
 # Create Runtime Cleanup test executable
 add_executable(${RUNTIME_CLEANUP_TEST_TARGET} ${RUNTIME_CLEANUP_TEST_SOURCES})
 
 target_include_directories(${RUNTIME_CLEANUP_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
 )
 
 target_link_libraries(${RUNTIME_CLEANUP_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -349,13 +359,13 @@ set_target_properties(${RUNTIME_CLEANUP_TEST_TARGET} PROPERTIES
 add_executable(${IPC_ERRORS_TEST_TARGET} ${IPC_ERRORS_TEST_SOURCES})
 
 target_include_directories(${IPC_ERRORS_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
 )
 
 target_link_libraries(${IPC_ERRORS_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -368,21 +378,25 @@ set_target_properties(${IPC_ERRORS_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
-# Create IPC Transport Modes test executable
+# Create IPC Transport Modes test executable.
+# POSIX-only: uses fork()/waitpid()/setenv() to spawn a runtime + several
+# clients across transport variants. Same Windows limitation as the other
+# fork-based tests.
+if(NOT WIN32)
 add_executable(${IPC_TRANSPORT_MODES_TEST_TARGET} ${IPC_TRANSPORT_MODES_TEST_SOURCES})
 
 target_include_directories(${IPC_TRANSPORT_MODES_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
-  ${CHIMAERA_ROOT}/modules/bdev/include
-  ${CHIMAERA_ROOT}/modules/admin/include
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/modules/bdev/include
+  ${CLIO_RUN_ROOT}/modules/admin/include
 )
 
 target_link_libraries(${IPC_TRANSPORT_MODES_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  chimaera_bdev_client        # Bdev module client
-  chimaera_admin_client       # Admin module client
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  clio_bdev_client        # Bdev module client
+  clio_admin_client       # Admin module client
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -394,22 +408,25 @@ set_target_properties(${IPC_TRANSPORT_MODES_TEST_TARGET} PROPERTIES
 set_target_properties(${IPC_TRANSPORT_MODES_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+endif()
 
-# Create Client Retry test executable
+# Create Client Retry test executable.
+# POSIX-only: uses <sys/wait.h> / fork() for parent-child retry orchestration.
+if(NOT WIN32)
 add_executable(${CLIENT_RETRY_TEST_TARGET} ${CLIENT_RETRY_TEST_SOURCES})
 
 target_include_directories(${CLIENT_RETRY_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
-  ${CHIMAERA_ROOT}/modules/bdev/include
-  ${CHIMAERA_ROOT}/modules/admin/include
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/modules/bdev/include
+  ${CLIO_RUN_ROOT}/modules/admin/include
 )
 
 target_link_libraries(${CLIENT_RETRY_TEST_TARGET}
-  chimaera_cxx               # Main Chimaera library
-  chimaera_bdev_client        # Bdev module client
-  chimaera_admin_client       # Admin module client
-  hshm::cxx                  # HermesShm library
+  chimaera_cxx               # Main CLIO Runtime library
+  clio_bdev_client        # Bdev module client
+  clio_admin_client       # Admin module client
+  ctp::cxx                  # ClioCtp library
   ${CMAKE_THREAD_LIBS_INIT}  # Threading support
 )
 
@@ -421,101 +438,153 @@ set_target_properties(${CLIENT_RETRY_TEST_TARGET} PROPERTIES
 set_target_properties(${CLIENT_RETRY_TEST_TARGET} PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+endif()
 
 
-# Create GPU IPC AllocateBuffer test executable (only if CUDA or HIP is enabled)
-if(WRP_CORE_ENABLE_CUDA OR WRP_CORE_ENABLE_ROCM)
-  add_cuda_executable(${IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET} TRUE ${IPC_ALLOCATE_BUFFER_GPU_TEST_SOURCES})
+# GPU runtime tests removed — kernels now submit tasks to the CPU
+# runtime via gpu2cpu_queue (see test/unit/gpu/test_sycl_*.cc).
+if(FALSE)
+  add_cuda_executable(${IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET} TRUE ${IPC_ALLOCATE_BUFFER_GPU_TEST_SOURCES}
+    INCLUDE_DIRS
+      ${CLIO_RUN_ROOT}/test
+      ${CLIO_RUN_ROOT}/modules/MOD_NAME/include
+    LINK_LIBS chimaera_cxx ctp::cuda_cxx
+  )
   target_include_directories(${IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET} PRIVATE
-    ${CHIMAERA_ROOT}/include
-    ${CHIMAERA_ROOT}/test
-    ${CHIMAERA_ROOT}/modules/MOD_NAME/include
+    ${CLIO_RUN_ROOT}/include
+    ${CLIO_RUN_ROOT}/test
+    ${CLIO_RUN_ROOT}/modules/MOD_NAME/include
   )
   target_link_libraries(${IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET}
     chimaera_cxx
-    hshm::cuda_cxx
+    ctp::cuda_cxx
     ${CMAKE_THREAD_LIBS_INIT}
   )
   set_target_properties(${IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   add_test(NAME ${IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET} COMMAND ${IPC_ALLOCATE_BUFFER_GPU_TEST_TARGET})
+
+  # GPU runtime / buddy-benchmark CUDA-only tests removed along with
+  # the GPU runtime concept.
 endif()
 
+# GPU producer-only stress test.
+#
+# Three flavors compile from the same `test_gpu_kernel_stress_common.h`
+# host fixture, one per backend. Each runs the same end-to-end pipeline
+# (allocate registered backend -> place N tasks -> launch a kernel
+# that submits all N concurrently via gpu2cpu_queue -> CPU worker
+# dispatches MOD_NAME::Runtime::GpuSubmit -> verify formula).
+if(CLIO_CORE_ENABLE_CUDA)
+  add_cuda_executable(test_gpu_kernel_stress FALSE
+    gpu/test_gpu_kernel_stress_gpu.cc
+    INCLUDE_DIRS
+      ${CLIO_RUN_ROOT}/include
+      ${CLIO_RUN_ROOT}/test
+      ${CLIO_RUN_ROOT}/modules/MOD_NAME/include
+      ${CLIO_RUN_ROOT}/modules/admin/include
+    LINK_LIBS
+      chimaera_cxx
+      chimaera_cxx_gpu
+      clio_admin_client
+      chimaera_MOD_NAME_client
+      ctp::cuda_cxx
+      ${CMAKE_THREAD_LIBS_INIT}
+  )
+  set_target_properties(test_gpu_kernel_stress PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+  add_test(NAME cr_gpu_kernel_stress_cuda COMMAND test_gpu_kernel_stress
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+  set_tests_properties(cr_gpu_kernel_stress_cuda PROPERTIES
+    ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 120
+    LABELS "gpu;cuda;stress"
+  )
+endif()
+
+if(CLIO_CORE_ENABLE_ROCM)
+  add_rocm_gpu_executable(test_gpu_kernel_stress FALSE
+    gpu/test_gpu_kernel_stress_gpu.cc
+  )
+  target_include_directories(test_gpu_kernel_stress PUBLIC
+    ${CLIO_RUN_ROOT}/include
+    ${CLIO_RUN_ROOT}/test
+    ${CLIO_RUN_ROOT}/modules/MOD_NAME/include
+    ${CLIO_RUN_ROOT}/modules/admin/include
+  )
+  target_link_libraries(test_gpu_kernel_stress PUBLIC
+    chimaera_cxx
+    chimaera_cxx_gpu
+    clio_admin_client
+    chimaera_MOD_NAME_client
+    ctp::rocm_cxx
+    ${CMAKE_THREAD_LIBS_INIT}
+  )
+  set_target_properties(test_gpu_kernel_stress PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+  add_test(NAME cr_gpu_kernel_stress_rocm COMMAND test_gpu_kernel_stress
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+  set_tests_properties(cr_gpu_kernel_stress_rocm PROPERTIES
+    ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 120
+    LABELS "gpu;rocm;stress"
+  )
+endif()
+
+if(CLIO_CORE_ENABLE_SYCL)
+  add_sycl_executable(test_gpu_kernel_stress FALSE
+    gpu/test_gpu_kernel_stress_sycl.cc
+    INCLUDE_DIRS
+      ${CLIO_RUN_ROOT}/include
+      ${CLIO_RUN_ROOT}/test
+      ${CLIO_RUN_ROOT}/modules/MOD_NAME/include
+      ${CLIO_RUN_ROOT}/modules/admin/include
+    LINK_LIBS
+      chimaera_cxx
+      chimaera_cxx_gpu
+      clio_admin_client
+      chimaera_MOD_NAME_client
+      ctp::cxx
+      ${CMAKE_THREAD_LIBS_INIT}
+  )
+  set_target_properties(test_gpu_kernel_stress PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+  add_test(NAME cr_gpu_kernel_stress_sycl COMMAND test_gpu_kernel_stress
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+  )
+  set_tests_properties(cr_gpu_kernel_stress_sycl PROPERTIES
+    ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 120
+    LABELS "gpu;sycl;stress"
+  )
+endif()
+
+# GPU task-trace, POD-transfer, and runtime tests were removed along
+# with the GPU runtime. Coverage of the kernel→CPU path now lives in
+# the SYCL kernel-side tests (test_sycl_chimod_to_cpu, test_sycl_cte_*).
+
+# GPU coroutine test removed along with the GPU runtime concept.
+
 # Enable CTest integration if testing is enabled
-if(WRP_CORE_ENABLE_TESTS)
+if(CLIO_CORE_ENABLE_TESTS)
   # Core Runtime Tests
+  # Single ctest entry runs the whole binary in one chimaera init/finalize cycle.
+  # Previously 8 redundant entries each invoked the full unfiltered binary, which
+  # serialized via RESOURCE_LOCK but multiplied chimaera shutdown ZMQ-race exposure.
   add_test(
-    NAME cr_runtime_initialization_tests
+    NAME cr_chimaera_unit_tests
     COMMAND ${TEST_TARGET}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
-  set_tests_properties(cr_runtime_initialization_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_client_initialization_tests
-    COMMAND ${TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_client_initialization_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_mod_name_task_tests
-    COMMAND ${TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_mod_name_task_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_error_handling_tests
-    COMMAND ${TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_error_handling_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_concurrent_tests
-    COMMAND ${TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_concurrent_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_memory_tests
-    COMMAND ${TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_memory_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_performance_tests
-    COMMAND ${TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_performance_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  # Comprehensive core test
-  add_test(
-    NAME cr_all_chimaera_tests
-    COMMAND ${TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_all_chimaera_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+  set_tests_properties(cr_chimaera_unit_tests PROPERTIES
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;CHIMAERA_TEST_MODE=1;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 600
   )
 
   # IPC AllocateBuffer Tests
@@ -525,7 +594,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_basic_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
   add_test(
@@ -534,7 +603,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_types_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
   add_test(
@@ -543,7 +612,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_sizes_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
   add_test(
@@ -552,7 +621,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_multiple_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
   add_test(
@@ -561,7 +630,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_client_runtime_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
   add_test(
@@ -570,7 +639,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_error_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
   add_test(
@@ -579,7 +648,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_alignment_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
   add_test(
@@ -588,105 +657,35 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_allocate_buffer_documentation_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
   )
 
-  # Per-Process Shared Memory Tests
+  # Per-Process Shared Memory Tests (POSIX fork-based — Linux/macOS only)
+  if(NOT WIN32)
   add_test(
-    NAME cr_per_process_shm_increase_memory_tests
+    NAME cr_per_process_shm_tests
     COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
-  set_tests_properties(cr_per_process_shm_increase_memory_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+  set_tests_properties(cr_per_process_shm_tests PROPERTIES
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 600
   )
+  endif()
 
-  add_test(
-    NAME cr_per_process_shm_medium_alloc_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_medium_alloc_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_per_process_shm_large_alloc_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_large_alloc_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 300  # 5 minute timeout for large allocation test
-  )
-
-  add_test(
-    NAME cr_per_process_shm_multiple_large_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_multiple_large_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 300
-  )
-
-  add_test(
-    NAME cr_per_process_shm_patterns_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_patterns_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 300
-  )
-
-  add_test(
-    NAME cr_per_process_shm_free_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_free_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_per_process_shm_tofullptr_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_tofullptr_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  add_test(
-    NAME cr_per_process_shm_stress_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_stress_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 600  # 10 minute timeout for stress test
-  )
-
-  add_test(
-    NAME cr_per_process_shm_info_tests
-    COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
-  set_tests_properties(cr_per_process_shm_info_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
-
-  # Autogen Coverage Tests
+  # Autogen Coverage Tests (requires CAE)
+  if(CLIO_CORE_ENABLE_CAE)
   add_test(
     NAME cr_autogen_coverage_tests
     COMMAND ${AUTOGEN_COVERAGE_TEST_TARGET}
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_autogen_coverage_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 300
+    LABELS "msan_skip"
   )
+  endif()  # CLIO_CORE_ENABLE_CAE
 
   # Streaming Tests
   add_test(
@@ -695,7 +694,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_streaming_small_output_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 60
   )
 
@@ -705,7 +704,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_streaming_large_output_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 60
   )
 
@@ -715,7 +714,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_streaming_bitfield_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 60
   )
 
@@ -725,23 +724,24 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_all_streaming_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 180
   )
 
-  # External Client Tests
+  # External Client Tests (POSIX fork-based — Linux/macOS only)
   # NOTE: Each test case must run in its own process because CHIMAERA_INIT has
   # a static guard that prevents re-initialization. Running all tests in one
   # process causes the static guard to return true for subsequent calls,
   # breaking tests that expect initialization failure.
+  if(NOT WIN32)
   add_test(
     NAME cr_external_client_basic_connection
     COMMAND ${EXTERNAL_CLIENT_TEST_TARGET} "ExternalClient - Basic Connection"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_external_client_basic_connection PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 60
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 120
   )
 
   add_test(
@@ -750,8 +750,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_external_client_multiple_clients PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 60
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 120
   )
 
   add_test(
@@ -760,8 +760,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_external_client_without_server PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 60
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 120
   )
 
   add_test(
@@ -770,9 +770,10 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_external_client_operations PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 60
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 120
   )
+  endif()
 
   # Runtime Cleanup Tests
   add_test(
@@ -781,7 +782,7 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_runtime_cleanup_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 120
   )
 
@@ -792,21 +793,22 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_errors_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 120
   )
 
-  # IPC Transport Mode Tests
+  # IPC Transport Mode Tests (POSIX fork-based — Linux/macOS only)
   # NOTE: Each test case must run in its own process because CHIMAERA_INIT has
   # a static guard that prevents re-initialization.
+  if(NOT WIN32)
   add_test(
     NAME cr_ipc_transport_shm
     COMMAND ${IPC_TRANSPORT_MODES_TEST_TARGET} "IpcTransportMode - SHM Client Connection"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_transport_shm PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -815,8 +817,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_transport_tcp PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -825,8 +827,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_transport_ipc PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -835,21 +837,23 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_ipc_transport_default PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
+  endif()  # NOT WIN32 (ipc_transport_modes tests)
 
-  # Client Retry Tests
+  # Client Retry Tests (POSIX fork-based — Linux/macOS only)
   # NOTE: Each test case must run in its own process because CHIMAERA_INIT has
   # a static guard that prevents re-initialization.
+  if(NOT WIN32)
   add_test(
     NAME cr_client_retry_server_restart_tcp
     COMMAND ${CLIENT_RETRY_TEST_TARGET} "ClientRetry - Server Restart TCP"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_client_retry_server_restart_tcp PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -858,8 +862,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_client_retry_server_restart_ipc PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -868,8 +872,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_client_retry_server_restart_shm PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -878,8 +882,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_client_retry_client_death_tcp PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -888,8 +892,8 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_client_retry_client_death_ipc PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
 
   add_test(
@@ -898,24 +902,10 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_client_retry_client_death_shm PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-    TIMEOUT 120
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+    TIMEOUT 300
   )
-
-  # Set test properties for timeout and environment
-  set_tests_properties(
-    cr_runtime_initialization_tests
-    cr_client_initialization_tests
-    cr_mod_name_task_tests
-    cr_error_handling_tests
-    cr_concurrent_tests
-    cr_memory_tests
-    cr_performance_tests
-    cr_all_chimaera_tests
-    PROPERTIES
-      TIMEOUT 180
-      ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;CHIMAERA_TEST_MODE=1;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
-  )
+  endif()
 
   # Unordered Map LL Tests (standalone test with custom main)
   add_test(
@@ -924,20 +914,14 @@ if(WRP_CORE_ENABLE_TESTS)
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   )
   set_tests_properties(cr_unordered_map_ll_tests PROPERTIES
-    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+    ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
     TIMEOUT 180
   )
 
-  # Mark all CR runtime tests as msan_skip (they use ZMQ which is uninstrumented)
-  set_tests_properties(
-    cr_runtime_initialization_tests
-    cr_client_initialization_tests
-    cr_mod_name_task_tests
-    cr_error_handling_tests
-    cr_concurrent_tests
-    cr_memory_tests
-    cr_performance_tests
-    cr_all_chimaera_tests
+  # Mark all CR runtime tests as msan_skip (they use ZMQ which is uninstrumented).
+  # The fork-based tests are excluded on Windows (not built there).
+  set(_msan_skip_tests
+    cr_chimaera_unit_tests
     cr_ipc_allocate_buffer_basic_tests
     cr_ipc_allocate_buffer_types_tests
     cr_ipc_allocate_buffer_sizes_tests
@@ -946,39 +930,34 @@ if(WRP_CORE_ENABLE_TESTS)
     cr_ipc_allocate_buffer_error_tests
     cr_ipc_allocate_buffer_alignment_tests
     cr_ipc_allocate_buffer_documentation_tests
-    cr_per_process_shm_increase_memory_tests
-    cr_per_process_shm_medium_alloc_tests
-    cr_per_process_shm_large_alloc_tests
-    cr_per_process_shm_multiple_large_tests
-    cr_per_process_shm_patterns_tests
-    cr_per_process_shm_free_tests
-    cr_per_process_shm_tofullptr_tests
-    cr_per_process_shm_stress_tests
-    cr_per_process_shm_info_tests
-    cr_autogen_coverage_tests
     cr_streaming_small_output_tests
     cr_streaming_large_output_tests
     cr_streaming_bitfield_tests
     cr_all_streaming_tests
-    cr_external_client_basic_connection
-    cr_external_client_multiple_clients
-    cr_external_client_without_server
-    cr_external_client_operations
     cr_runtime_cleanup_tests
     cr_ipc_errors_tests
-    cr_ipc_transport_shm
-    cr_ipc_transport_tcp
-    cr_ipc_transport_ipc
-    cr_ipc_transport_default
-    cr_client_retry_server_restart_tcp
-    cr_client_retry_server_restart_ipc
-    cr_client_retry_server_restart_shm
-    cr_client_retry_client_death_tcp
-    cr_client_retry_client_death_ipc
-    cr_client_retry_client_death_shm
     cr_unordered_map_ll_tests
-    PROPERTIES LABELS "msan_skip"
   )
+  if(NOT WIN32)
+    list(APPEND _msan_skip_tests
+      cr_per_process_shm_tests
+      cr_external_client_basic_connection
+      cr_external_client_multiple_clients
+      cr_external_client_without_server
+      cr_external_client_operations
+      cr_client_retry_server_restart_tcp
+      cr_client_retry_server_restart_ipc
+      cr_client_retry_server_restart_shm
+      cr_client_retry_client_death_tcp
+      cr_client_retry_client_death_ipc
+      cr_client_retry_client_death_shm
+      cr_ipc_transport_shm
+      cr_ipc_transport_tcp
+      cr_ipc_transport_ipc
+      cr_ipc_transport_default
+    )
+  endif()
+  set_tests_properties(${_msan_skip_tests} PROPERTIES LABELS "msan_skip")
 endif()
 
 # Custom targets for running specific test categories
@@ -1017,7 +996,9 @@ add_custom_target(test_performance
   COMMENT "Running Chimaera performance tests"
 )
 
-# Custom targets for per-process shared memory tests
+# Custom targets for per-process shared memory tests (Linux/macOS only — the
+# underlying binary is fork-based so it isn't built on Windows).
+if(NOT WIN32)
 add_custom_target(test_per_process_shm
   COMMAND ${PER_PROCESS_SHM_TEST_TARGET}
   DEPENDS ${PER_PROCESS_SHM_TEST_TARGET}
@@ -1038,6 +1019,7 @@ add_custom_target(test_per_process_shm_stress
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
   COMMENT "Running Chimaera per-process shared memory stress tests"
 )
+endif()  # NOT WIN32
 
 # Custom target to run all core unit tests
 add_custom_target(test_all_unit
@@ -1047,46 +1029,53 @@ add_custom_target(test_all_unit
   COMMENT "Running all Chimaera core unit tests"
 )
 
-# Install test executables
-install(TARGETS
+# Install test executables.
+# Fork-based POSIX-only tests are skipped on Windows (see add_executable guards).
+set(_install_test_targets
   ${TEST_TARGET}
   ${IPC_ALLOCATE_BUFFER_TEST_TARGET}
   ${UNORDERED_MAP_LL_TEST_TARGET}
   ${SAVE_LOAD_TASK_TEST_TARGET}
   ${LOCAL_TASK_ARCHIVE_TEST_TARGET}
-  ${PER_PROCESS_SHM_TEST_TARGET}
-  ${AUTOGEN_COVERAGE_TEST_TARGET}
   ${STREAMING_TEST_TARGET}
-  ${EXTERNAL_CLIENT_TEST_TARGET}
   ${RUNTIME_CLEANUP_TEST_TARGET}
   ${IPC_ERRORS_TEST_TARGET}
-  ${IPC_TRANSPORT_MODES_TEST_TARGET}
-  ${CLIENT_RETRY_TEST_TARGET}
-  RUNTIME DESTINATION bin
 )
+if(NOT WIN32)
+  list(APPEND _install_test_targets
+    ${PER_PROCESS_SHM_TEST_TARGET}
+    ${EXTERNAL_CLIENT_TEST_TARGET}
+    ${CLIENT_RETRY_TEST_TARGET}
+    ${IPC_TRANSPORT_MODES_TEST_TARGET}
+  )
+endif()
+if(CLIO_CORE_ENABLE_CAE)
+  list(APPEND _install_test_targets ${AUTOGEN_COVERAGE_TEST_TARGET})
+endif()
+install(TARGETS ${_install_test_targets} RUNTIME DESTINATION bin)
 
 # Note: Module-specific tests are now in their respective module directories
 # Note: Distributed tests are run via Docker using the chimaera_bdev_chimod_tests binary
 # See test/unit/distributed/docker-compose.yml and run_tests.sh for distributed test execution
 
 # MPI BDev Transport Integration Test
-if(WRP_CORE_ENABLE_MPI)
+if(CLIO_CORE_ENABLE_MPI)
   set(MPI_BDEV_TRANSPORT_TEST_TARGET chimaera_mpi_bdev_transport_tests)
   add_executable(${MPI_BDEV_TRANSPORT_TEST_TARGET} test_mpi_bdev_transport.cc)
 
   target_include_directories(${MPI_BDEV_TRANSPORT_TEST_TARGET} PRIVATE
-    ${CHIMAERA_ROOT}/include
-    ${CHIMAERA_ROOT}/test
-    ${CHIMAERA_ROOT}/modules/bdev/include
-    ${CHIMAERA_ROOT}/modules/admin/include
+    ${CLIO_RUN_ROOT}/include
+    ${CLIO_RUN_ROOT}/test
+    ${CLIO_RUN_ROOT}/modules/bdev/include
+    ${CLIO_RUN_ROOT}/modules/admin/include
   )
 
   target_link_libraries(${MPI_BDEV_TRANSPORT_TEST_TARGET}
     chimaera_cxx
-    chimaera_bdev_client
-    chimaera_admin_client
-    hshm::cxx
-    hshm::mpi
+    clio_bdev_client
+    clio_admin_client
+    ctp::cxx
+    ctp::mpi
     ${CMAKE_THREAD_LIBS_INIT}
   )
 
@@ -1100,26 +1089,34 @@ if(WRP_CORE_ENABLE_MPI)
     RUNTIME DESTINATION bin
   )
 
-  if(WRP_CORE_ENABLE_TESTS)
+  if(CLIO_CORE_ENABLE_TESTS)
     # 4-rank test: server + SHM + TCP + IPC clients
     add_test(
       NAME cr_mpi_bdev_transport_all_modes
-      COMMAND mpirun -n 4 ${CMAKE_BINARY_DIR}/bin/${MPI_BDEV_TRANSPORT_TEST_TARGET}
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4
+              ${MPIEXEC_PREFLAGS}
+              ${CMAKE_BINARY_DIR}/bin/${MPI_BDEV_TRANSPORT_TEST_TARGET}
+              ${MPIEXEC_POSTFLAGS}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
     set_tests_properties(cr_mpi_bdev_transport_all_modes PROPERTIES
-      ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+      ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+      RESOURCE_LOCK "chimaera_runtime_port"
       TIMEOUT 300
     )
 
     # 2-rank test: server + TCP client (minimal)
     add_test(
       NAME cr_mpi_bdev_transport_minimal
-      COMMAND mpirun -n 2 ${CMAKE_BINARY_DIR}/bin/${MPI_BDEV_TRANSPORT_TEST_TARGET}
+      COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
+              ${MPIEXEC_PREFLAGS}
+              ${CMAKE_BINARY_DIR}/bin/${MPI_BDEV_TRANSPORT_TEST_TARGET}
+              ${MPIEXEC_POSTFLAGS}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
     set_tests_properties(cr_mpi_bdev_transport_minimal PROPERTIES
-      ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH}"
+      ENVIRONMENT "CHI_REPO_PATH=${CMAKE_BINARY_DIR}/bin;LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/bin:$ENV{LD_LIBRARY_PATH};CLIO_BIND_ADDR=127.0.0.1;CLIO_PORT=10500"
+      RESOURCE_LOCK "chimaera_runtime_port"
       TIMEOUT 180
     )
   endif()
@@ -1131,7 +1128,7 @@ message(STATUS "  Test target: ${TEST_TARGET}")
 message(STATUS "  Test sources: ${TEST_SOURCES}")
 message(STATUS "  IPC AllocateBuffer test target: ${IPC_ALLOCATE_BUFFER_TEST_TARGET}")
 message(STATUS "  Per-Process SHM test target: ${PER_PROCESS_SHM_TEST_TARGET}")
-message(STATUS "  CTest enabled: ${WRP_CORE_ENABLE_TESTS}")
+message(STATUS "  CTest enabled: ${CLIO_CORE_ENABLE_TESTS}")
 message(STATUS "  Output directory: ${CMAKE_BINARY_DIR}/bin")
 message(STATUS "")
 message(STATUS "Module-specific tests are in:")

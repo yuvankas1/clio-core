@@ -87,19 +87,19 @@ add_executable(bench_repo_scan
     bench_repo_scan.cc
 )
 target_link_libraries(bench_repo_scan
-    wrp_cte_core_runtime
-    wrp_cte_core_client
-    chimaera::admin_runtime
-    chimaera::admin_client
-    chimaera::bdev_runtime
-    chimaera::bdev_client
-    hshm::cxx
+    clio_cte_core_runtime
+    clio_cte_core_client
+    clio_admin_runtime
+    clio_admin_client
+    clio_bdev_runtime
+    clio_bdev_client
+    ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
 )
-if(WRP_CORE_ENABLE_CAE)
+if(CLIO_CORE_ENABLE_CAE)
     # Compile summary_operator.cc directly into the benchmark to avoid the
     # ABI conflict between the system libcurl that libhdf5 needs and the conda
-    # libcurl that the wrp_cae_core_runtime might pull in.
+    # libcurl that the clio_cae_core_runtime might pull in.
     # operator_scheduler.cc is the B-Full pipeline orchestrator; it depends on
     # summary_operator so it lives alongside it in the bench's private sources.
     target_sources(bench_repo_scan PRIVATE
@@ -107,10 +107,10 @@ if(WRP_CORE_ENABLE_CAE)
         ${CMAKE_SOURCE_DIR}/context-assimilation-engine/core/src/factory/operator_scheduler.cc)
     target_include_directories(bench_repo_scan PRIVATE
         ${CMAKE_SOURCE_DIR}/context-assimilation-engine/core/include)
-    target_link_libraries(bench_repo_scan wrp_cae_core_client)
+    target_link_libraries(bench_repo_scan clio_cae_core_client)
     target_compile_definitions(bench_repo_scan PRIVATE
         ACROPOLIS_BENCH_USE_SUMMARY
-        WRP_CAE_ENABLE_SUMMARY_OP)
+        CLIO_CAE_ENABLE_SUMMARY_OP)
     # SummaryOperator uses libcurl via its own #include in summary_operator.cc
     if(EXISTS "/usr/lib/x86_64-linux-gnu/libcurl.so.4")
         target_link_libraries(bench_repo_scan
@@ -121,7 +121,7 @@ if(WRP_CORE_ENABLE_CAE)
 endif()
 
 # Acropolis — L2 HDF5 extractor on a real file
-if(WRP_CORE_ENABLE_HDF5)
+if(CLIO_CORE_ENABLE_HDF5)
   find_package(HDF5 QUIET COMPONENTS C)
   if(HDF5_FOUND)
     add_executable(test_depth_hdf5_e2e
@@ -169,109 +169,109 @@ target_include_directories(test_reorganize_blob PRIVATE
 
 # Link against required libraries using simple_test.h framework (NOT Catch2)
 target_link_libraries(cte_core_unit_tests
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_core_functionality - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_core_functionality
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_cte_config_dpe - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_cte_config_dpe
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_query - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_query
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_tag_operations - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_tag_operations
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_core_client_config - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_core_client_config
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_core_runtime_coverage - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_core_runtime_coverage
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_tiered_storage_stress - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_tiered_storage_stress
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
 # Link test_reorganize_blob - using simple_test.h framework (NOT Catch2)
 target_link_libraries(test_reorganize_blob
-    wrp_cte_core_runtime         # CTE core runtime library
-    wrp_cte_core_client          # CTE core client library
-    chimaera::admin_runtime      # Admin module runtime (required for runtime mode)
-    chimaera::admin_client       # Admin module client
-    chimaera::bdev_runtime       # Bdev module runtime (required for runtime mode)
-    chimaera::bdev_client        # Bdev client for BdevType enum
-    hshm::cxx                    # HermesShm library
+    clio_cte_core_runtime         # CTE core runtime library
+    clio_cte_core_client          # CTE core client library
+    clio_admin_runtime      # Admin module runtime (required for runtime mode)
+    clio_admin_client       # Admin module client
+    clio_bdev_runtime       # Bdev module runtime (required for runtime mode)
+    clio_bdev_client        # Bdev client for BdevType enum
+    ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
 )
 
@@ -280,8 +280,8 @@ target_include_directories(test_depth_controller PRIVATE
     ${CMAKE_SOURCE_DIR}/test     # For unified simple_test.h
 )
 target_link_libraries(test_depth_controller
-    wrp_cte_core_client          # Pulls in wrp_cte headers + httplib
-    hshm::cxx
+    clio_cte_core_client          # Pulls in wrp_cte headers + httplib
+    ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -289,11 +289,11 @@ target_include_directories(test_indexing_depth_config PRIVATE
     ${CMAKE_SOURCE_DIR}/test     # For unified simple_test.h
 )
 target_link_libraries(test_indexing_depth_config
-    wrp_cte_core_client          # needed for wrp_cte::core::Config impl
-    wrp_cte_core_runtime         # LoadFromString lives here
-    chimaera::admin_client
-    hshm::cxx
-    hshm::configure
+    clio_cte_core_client          # needed for clio::cte::core::Config impl
+    clio_cte_core_runtime         # LoadFromString lives here
+    clio_admin_client
+    ctp::cxx
+    ctp::configure
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -301,13 +301,13 @@ target_include_directories(test_depth_runtime_e2e PRIVATE
     ${CMAKE_SOURCE_DIR}/test     # For unified simple_test.h
 )
 target_link_libraries(test_depth_runtime_e2e
-    wrp_cte_core_runtime
-    wrp_cte_core_client
-    chimaera::admin_runtime
-    chimaera::admin_client
-    chimaera::bdev_runtime
-    chimaera::bdev_client
-    hshm::cxx
+    clio_cte_core_runtime
+    clio_cte_core_client
+    clio_admin_runtime
+    clio_admin_client
+    clio_bdev_runtime
+    clio_bdev_client
+    ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -315,27 +315,27 @@ target_include_directories(test_qdrant_backend_live PRIVATE
     ${CMAKE_SOURCE_DIR}/test
 )
 target_link_libraries(test_qdrant_backend_live
-    wrp_cte_core_client
-    hshm::cxx
+    clio_cte_core_client
+    ctp::cxx
     nlohmann_json::nlohmann_json
     ${CMAKE_THREAD_LIBS_INIT}
 )
 target_compile_definitions(test_qdrant_backend_live PRIVATE
-    WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
-    WRP_CTE_KG_QDRANT
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
+    CLIO_CTE_KG_QDRANT
 )
 
 target_include_directories(test_depth_qdrant_e2e PRIVATE
     ${CMAKE_SOURCE_DIR}/test
 )
 target_link_libraries(test_depth_qdrant_e2e
-    wrp_cte_core_runtime
-    wrp_cte_core_client
-    chimaera::admin_runtime
-    chimaera::admin_client
-    chimaera::bdev_runtime
-    chimaera::bdev_client
-    hshm::cxx
+    clio_cte_core_runtime
+    clio_cte_core_client
+    clio_admin_runtime
+    clio_admin_client
+    clio_bdev_runtime
+    clio_bdev_client
+    ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -345,20 +345,20 @@ if(TARGET test_depth_hdf5_e2e)
       ${HDF5_INCLUDE_DIRS}
   )
   target_link_libraries(test_depth_hdf5_e2e
-      wrp_cte_core_runtime
-      wrp_cte_core_client
-      chimaera::admin_runtime
-      chimaera::admin_client
-      chimaera::bdev_runtime
-      chimaera::bdev_client
-      hshm::cxx
+      clio_cte_core_runtime
+      clio_cte_core_client
+      clio_admin_runtime
+      clio_admin_client
+      clio_bdev_runtime
+      clio_bdev_client
+      ctp::cxx
       ${HDF5_C_LIBRARIES}
       ${CMAKE_THREAD_LIBS_INIT}
   )
 endif()
 
 # Note: Include directories are provided automatically via linked ChiMod targets
-# wrp_cte_core_client provides ${WRP_CTE_ROOT}/core/include via transitive includes
+# clio_cte_core_client provides ${CLIO_CTE_ROOT}/core/include via transitive includes
 
 # Manual test registration for specific test cases
 add_test(NAME cte_core_pool_creation

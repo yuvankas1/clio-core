@@ -31,26 +31,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <chimaera/chimaera.h>
-#include <wrp_cae/core/factory/summary_operator.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cae/core/factory/summary_operator.h>
 
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
 
-#include <wrp_cae/core/factory/hashing.h>
+#include <clio_cae/core/factory/hashing.h>
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #endif
 
 // Include wrp_cte headers after closing any wrp_cae namespace to avoid Method
 // namespace collision
-#include <wrp_cte/core/core_client.h>
+#include <clio_cte/core/core_client.h>
 
-namespace wrp_cae::core {
+namespace clio::cae::core {
 
 // ---------------------------------------------------------------------------
 // Config
@@ -70,11 +70,11 @@ SummaryOperator::Config SummaryOperator::Config::FromEnv() {
 // ---------------------------------------------------------------------------
 
 SummaryOperator::SummaryOperator(
-    std::shared_ptr<wrp_cte::core::Client> cte_client, Config config)
+    std::shared_ptr<clio::cte::core::Client> cte_client, Config config)
     : cte_client_(std::move(cte_client)), config_(std::move(config)) {}
 
 SummaryOperator::SummaryOperator(
-    std::shared_ptr<wrp_cte::core::Client> cte_client)
+    std::shared_ptr<clio::cte::core::Client> cte_client)
     : SummaryOperator(std::move(cte_client), Config::FromEnv()) {}
 
 // ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ int SummaryOperator::ResolveMaxTokens() const {
 // Idempotency input hash
 // ---------------------------------------------------------------------------
 
-std::string SummaryOperator::ComputeInputHash(wrp_cte::core::Tag& tag) const {
+std::string SummaryOperator::ComputeInputHash(clio::cte::core::Tag& tag) const {
   chi::u64 sz = tag.GetBlobSize("description");
   if (sz == 0) return "";
   std::vector<char> buf(sz);
@@ -155,7 +155,7 @@ int SummaryOperator::Execute(const std::string& tag_name) {
   // Idempotency check: skip LLM call if a prior run produced the same output
   // for this exact (description, prompt, model, max_tokens, op_version).
   try {
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
     if (IsCached(tag)) {
       HLOG(kInfo, "SummaryOperator: cache HIT for tag '{}' — skipping LLM call",
            tag_name);
@@ -196,8 +196,8 @@ int SummaryOperator::Execute(const std::string& tag_name) {
   // Category is propagated from the description blob's meta when present, so
   // queries can filter results by data category (code / scientific / ...).
   try {
-    wrp_cte::core::Tag tag(tag_name);
-    wrp_cte::core::BlobMeta meta;
+    clio::cte::core::Tag tag(tag_name);
+    clio::cte::core::BlobMeta meta;
     meta.input_hash = ComputeInputHash(tag);
     meta.op_version = Version();
     meta.prompt_hash = hashing::Fnv1a64Hex(ResolveSystemPrompt(description));
@@ -221,7 +221,7 @@ int SummaryOperator::Execute(const std::string& tag_name) {
 
 std::string SummaryOperator::ReadDescriptionBlob(const std::string& tag_name) {
   try {
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
 
     // Get the size of the description blob
     chi::u64 blob_size = tag.GetBlobSize("description");
@@ -244,7 +244,7 @@ std::string SummaryOperator::ReadDescriptionBlob(const std::string& tag_name) {
   }
 }
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
 
 // libcurl write callback
 static size_t CurlWriteCallback(void* contents, size_t size, size_t nmemb,
@@ -336,22 +336,22 @@ std::string SummaryOperator::CallLlm(const std::string& description) const {
   }
 }
 
-#else  // !WRP_CAE_ENABLE_SUMMARY_OP
+#else  // !CLIO_CAE_ENABLE_SUMMARY_OP
 
 std::string SummaryOperator::CallLlm(const std::string& description) const {
   (void)description;
   HLOG(kError,
        "SummaryOperator: Summary operator not compiled in. "
-       "Rebuild with -DWRP_CAE_ENABLE_SUMMARY_OP=ON");
+       "Rebuild with -DCLIO_CAE_ENABLE_SUMMARY_OP=ON");
   return "";
 }
 
-#endif  // WRP_CAE_ENABLE_SUMMARY_OP
+#endif  // CLIO_CAE_ENABLE_SUMMARY_OP
 
 int SummaryOperator::WriteSummaryBlob(const std::string& tag_name,
                                       const std::string& summary) {
   try {
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
     tag.PutBlob("summary", summary.c_str(), summary.size());
     HLOG(kDebug, "SummaryOperator: Wrote 'summary' blob ({} bytes) to tag '{}'",
          summary.size(), tag_name);
@@ -363,4 +363,4 @@ int SummaryOperator::WriteSummaryBlob(const std::string& tag_name,
   }
 }
 
-}  // namespace wrp_cae::core
+}  // namespace clio::cae::core

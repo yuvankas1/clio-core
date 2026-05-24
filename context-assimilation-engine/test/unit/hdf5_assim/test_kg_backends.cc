@@ -25,10 +25,10 @@
 
 #include <nlohmann/json.hpp>
 
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
-#include <wrp_cte/core/kg_backend.h>
-#include <wrp_cte/core/kg_backend_factory.h>
-#include <wrp_cte/core/core_tasks.h>
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
+#include <clio_cte/core/kg_backend.h>
+#include <clio_cte/core/kg_backend_factory.h>
+#include <clio_cte/core/core_tasks.h>
 #endif
 
 using Clock = std::chrono::high_resolution_clock;
@@ -92,10 +92,10 @@ static const std::vector<Query> kQueries = {
     {"Locate the DNA epigenetic methylation data", "dna_methylation"},
 };
 
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
 void RunBackendTest(const std::string &backend_name,
                     const std::string &config) {
-  using namespace wrp_cte::core;
+  using namespace clio::cte::core;
 
   std::cout << "\n========================================\n";
   std::cout << "Backend: " << backend_name << "\n";
@@ -206,9 +206,9 @@ void RunBackendTest(const std::string &backend_name,
 #endif
 
 int main(int argc, char *argv[]) {
-#ifndef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifndef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
   std::cerr << "Knowledge graph not compiled. "
-            << "Rebuild with -DWRP_CTE_ENABLE_KNOWLEDGE_GRAPH=ON\n";
+            << "Rebuild with -DCLIO_CTE_ENABLE_KNOWLEDGE_GRAPH=ON\n";
   return 1;
 #else
   std::string backend = (argc > 1) ? argv[1] : "bm25";
@@ -216,13 +216,13 @@ int main(int argc, char *argv[]) {
 
   if (backend == "all") {
     RunBackendTest("bm25", "");
-#ifdef WRP_CTE_KG_ELASTICSEARCH
+#ifdef CLIO_CTE_KG_ELASTICSEARCH
     RunBackendTest("elasticsearch", "localhost:9200/cte_kg_bench");
 #endif
-#ifdef WRP_CTE_KG_NEO4J
+#ifdef CLIO_CTE_KG_NEO4J
     RunBackendTest("neo4j", "localhost:7474");
 #endif
-#ifdef WRP_CTE_KG_QDRANT
+#ifdef CLIO_CTE_KG_QDRANT
     RunBackendTest("qdrant", "localhost:6333");
 #endif
   } else {

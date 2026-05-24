@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /*
  * Copyright (c) 2024, Gnosis Research Center, Illinois Institute of Technology
  * All rights reserved.
@@ -571,3 +572,12 @@ struct hash<chi::TaskId> {
 }  // namespace std
 
 #endif  // CHIMAERA_INCLUDE_CHIMAERA_TYPES_H_
+=======
+// Backward-compat forwarding shim.
+// Prefer the new path: <clio_runtime/types.h>.
+//
+// This header was relocated as part of the chimaera -> clio_runtime
+// rebrand. The original include path remains valid for now; the canonical
+// header lives at the new path.
+#include <clio_runtime/types.h>
+>>>>>>> origin/main

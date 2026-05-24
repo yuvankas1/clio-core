@@ -1,4 +1,4 @@
-# CMakeLists.txt for Chimaera Leader Election Integration Tests
+# CMakeLists.txt for CLIO Runtime Leader Election Integration Tests
 cmake_minimum_required(VERSION 3.10)
 
 # These tests require Docker and docker-compose
@@ -14,18 +14,18 @@ add_executable(${LEADER_ELECT_TEST_TARGET}
 )
 
 target_include_directories(${LEADER_ELECT_TEST_TARGET} PRIVATE
-  ${CHIMAERA_ROOT}/include
-  ${CHIMAERA_ROOT}/test  # For simple_test.h
-  ${CHIMAERA_ROOT}/modules/admin/include
-  ${CHIMAERA_ROOT}/modules/MOD_NAME/include
+  ${CLIO_RUN_ROOT}/include
+  ${CLIO_RUN_ROOT}/test  # For simple_test.h
+  ${CLIO_RUN_ROOT}/modules/admin/include
+  ${CLIO_RUN_ROOT}/modules/MOD_NAME/include
 )
 
 target_link_libraries(${LEADER_ELECT_TEST_TARGET}
-  chimaera_admin_runtime
-  chimaera_admin_client
+  clio_admin_runtime
+  clio_admin_client
   chimaera_MOD_NAME_runtime
   chimaera_MOD_NAME_client
-  hshm::cxx
+  ctp::cxx
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -40,12 +40,12 @@ set(LEADER_ELECT_TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Register ctest
 add_test(
-    NAME cr_leader_elect_integration
+    NAME cr_leader_elect_integration_docker
     COMMAND ${LEADER_ELECT_TEST_DIR}/run_tests.sh all
     WORKING_DIRECTORY ${LEADER_ELECT_TEST_DIR}
 )
 
-set_tests_properties(cr_leader_elect_integration PROPERTIES
+set_tests_properties(cr_leader_elect_integration_docker PROPERTIES
     LABELS "integration;docker;leader_elect"
     TIMEOUT 600  # 10 minute timeout for Docker-based tests
     ENVIRONMENT "NUM_NODES=4;TEST_FILTER=[leader_elect]"

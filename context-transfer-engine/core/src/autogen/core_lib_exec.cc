@@ -7,12 +7,12 @@
  * Changes should be made to the autogen tool or the YAML configuration.
  */
 
-#include "wrp_cte/core/core_runtime.h"
-#include "wrp_cte/core/autogen/core_methods.h"
-#include <chimaera/chimaera.h>
-#include <chimaera/task.h>  // For TaskResume coroutine return type
+#include "clio_cte/core/core_runtime.h"
+#include "clio_cte/core/autogen/core_methods.h"
+#include <clio_runtime/clio_runtime.h>
+#include <clio_runtime/task.h>  // For TaskResume coroutine return type
 
-namespace wrp_cte::core {
+namespace clio::cte::core {
 
 //==============================================================================
 // Container Virtual API Implementations
@@ -37,150 +37,151 @@ void Runtime::Restart(const chi::PoolId &pool_id, const std::string &pool_name,
   Init(pool_id, pool_name, container_id);
 }
 
-chi::TaskResume Runtime::Run(chi::u32 method, hipc::FullPtr<chi::Task> task_ptr, chi::RunContext& rctx) {
+chi::TaskResume Runtime::Run(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr, chi::RunContext& rctx) {
+  CLIO_TASK_BODY_BEGIN
   switch (method) {
     case Method::kCreate: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<CreateTask> typed_task = task_ptr.template Cast<CreateTask>();
-      co_await Create(typed_task, rctx);
+      ctp::ipc::FullPtr<CreateTask> typed_task = task_ptr.template Cast<CreateTask>();
+      CLIO_CO_AWAIT(Create(typed_task, rctx));
       break;
     }
     case Method::kDestroy: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<DestroyTask> typed_task = task_ptr.template Cast<DestroyTask>();
-      co_await Destroy(typed_task, rctx);
+      ctp::ipc::FullPtr<DestroyTask> typed_task = task_ptr.template Cast<DestroyTask>();
+      CLIO_CO_AWAIT(Destroy(typed_task, rctx));
       break;
     }
     case Method::kMonitor: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<MonitorTask> typed_task = task_ptr.template Cast<MonitorTask>();
-      co_await Monitor(typed_task, rctx);
+      ctp::ipc::FullPtr<MonitorTask> typed_task = task_ptr.template Cast<MonitorTask>();
+      CLIO_CO_AWAIT(Monitor(typed_task, rctx));
       break;
     }
     case Method::kRegisterTarget: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<RegisterTargetTask> typed_task = task_ptr.template Cast<RegisterTargetTask>();
-      co_await RegisterTarget(typed_task, rctx);
+      ctp::ipc::FullPtr<RegisterTargetTask> typed_task = task_ptr.template Cast<RegisterTargetTask>();
+      CLIO_CO_AWAIT(RegisterTarget(typed_task, rctx));
       break;
     }
     case Method::kUnregisterTarget: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<UnregisterTargetTask> typed_task = task_ptr.template Cast<UnregisterTargetTask>();
-      co_await UnregisterTarget(typed_task, rctx);
+      ctp::ipc::FullPtr<UnregisterTargetTask> typed_task = task_ptr.template Cast<UnregisterTargetTask>();
+      CLIO_CO_AWAIT(UnregisterTarget(typed_task, rctx));
       break;
     }
     case Method::kListTargets: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<ListTargetsTask> typed_task = task_ptr.template Cast<ListTargetsTask>();
-      co_await ListTargets(typed_task, rctx);
+      ctp::ipc::FullPtr<ListTargetsTask> typed_task = task_ptr.template Cast<ListTargetsTask>();
+      CLIO_CO_AWAIT(ListTargets(typed_task, rctx));
       break;
     }
     case Method::kStatTargets: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<StatTargetsTask> typed_task = task_ptr.template Cast<StatTargetsTask>();
-      co_await StatTargets(typed_task, rctx);
+      ctp::ipc::FullPtr<StatTargetsTask> typed_task = task_ptr.template Cast<StatTargetsTask>();
+      CLIO_CO_AWAIT(StatTargets(typed_task, rctx));
       break;
     }
     case Method::kGetOrCreateTag: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<core::GetOrCreateTagTask<core::CreateParams>> typed_task = task_ptr.template Cast<core::GetOrCreateTagTask<core::CreateParams>>();
-      co_await GetOrCreateTag(typed_task, rctx);
+      ctp::ipc::FullPtr<core::GetOrCreateTagTask<core::CreateParams>> typed_task = task_ptr.template Cast<core::GetOrCreateTagTask<core::CreateParams>>();
+      CLIO_CO_AWAIT(GetOrCreateTag(typed_task, rctx));
       break;
     }
     case Method::kPutBlob: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<PutBlobTask> typed_task = task_ptr.template Cast<PutBlobTask>();
-      co_await PutBlob(typed_task, rctx);
+      ctp::ipc::FullPtr<PutBlobTask> typed_task = task_ptr.template Cast<PutBlobTask>();
+      CLIO_CO_AWAIT(PutBlob(typed_task, rctx));
       break;
     }
     case Method::kGetBlob: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<GetBlobTask> typed_task = task_ptr.template Cast<GetBlobTask>();
-      co_await GetBlob(typed_task, rctx);
+      ctp::ipc::FullPtr<GetBlobTask> typed_task = task_ptr.template Cast<GetBlobTask>();
+      CLIO_CO_AWAIT(GetBlob(typed_task, rctx));
       break;
     }
     case Method::kReorganizeBlob: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<ReorganizeBlobTask> typed_task = task_ptr.template Cast<ReorganizeBlobTask>();
-      co_await ReorganizeBlob(typed_task, rctx);
+      ctp::ipc::FullPtr<ReorganizeBlobTask> typed_task = task_ptr.template Cast<ReorganizeBlobTask>();
+      CLIO_CO_AWAIT(ReorganizeBlob(typed_task, rctx));
       break;
     }
     case Method::kDelBlob: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<DelBlobTask> typed_task = task_ptr.template Cast<DelBlobTask>();
-      co_await DelBlob(typed_task, rctx);
+      ctp::ipc::FullPtr<DelBlobTask> typed_task = task_ptr.template Cast<DelBlobTask>();
+      CLIO_CO_AWAIT(DelBlob(typed_task, rctx));
       break;
     }
     case Method::kDelTag: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<DelTagTask> typed_task = task_ptr.template Cast<DelTagTask>();
-      co_await DelTag(typed_task, rctx);
+      ctp::ipc::FullPtr<DelTagTask> typed_task = task_ptr.template Cast<DelTagTask>();
+      CLIO_CO_AWAIT(DelTag(typed_task, rctx));
       break;
     }
     case Method::kGetTagSize: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<GetTagSizeTask> typed_task = task_ptr.template Cast<GetTagSizeTask>();
-      co_await GetTagSize(typed_task, rctx);
+      ctp::ipc::FullPtr<GetTagSizeTask> typed_task = task_ptr.template Cast<GetTagSizeTask>();
+      CLIO_CO_AWAIT(GetTagSize(typed_task, rctx));
       break;
     }
     case Method::kPollTelemetryLog: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<PollTelemetryLogTask> typed_task = task_ptr.template Cast<PollTelemetryLogTask>();
-      co_await PollTelemetryLog(typed_task, rctx);
+      ctp::ipc::FullPtr<PollTelemetryLogTask> typed_task = task_ptr.template Cast<PollTelemetryLogTask>();
+      CLIO_CO_AWAIT(PollTelemetryLog(typed_task, rctx));
       break;
     }
     case Method::kGetBlobScore: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<GetBlobScoreTask> typed_task = task_ptr.template Cast<GetBlobScoreTask>();
-      co_await GetBlobScore(typed_task, rctx);
+      ctp::ipc::FullPtr<GetBlobScoreTask> typed_task = task_ptr.template Cast<GetBlobScoreTask>();
+      CLIO_CO_AWAIT(GetBlobScore(typed_task, rctx));
       break;
     }
     case Method::kGetBlobSize: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<GetBlobSizeTask> typed_task = task_ptr.template Cast<GetBlobSizeTask>();
-      co_await GetBlobSize(typed_task, rctx);
+      ctp::ipc::FullPtr<GetBlobSizeTask> typed_task = task_ptr.template Cast<GetBlobSizeTask>();
+      CLIO_CO_AWAIT(GetBlobSize(typed_task, rctx));
       break;
     }
     case Method::kGetContainedBlobs: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<GetContainedBlobsTask> typed_task = task_ptr.template Cast<GetContainedBlobsTask>();
-      co_await GetContainedBlobs(typed_task, rctx);
+      ctp::ipc::FullPtr<GetContainedBlobsTask> typed_task = task_ptr.template Cast<GetContainedBlobsTask>();
+      CLIO_CO_AWAIT(GetContainedBlobs(typed_task, rctx));
       break;
     }
     case Method::kGetBlobInfo: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<GetBlobInfoTask> typed_task = task_ptr.template Cast<GetBlobInfoTask>();
-      co_await GetBlobInfo(typed_task, rctx);
+      ctp::ipc::FullPtr<GetBlobInfoTask> typed_task = task_ptr.template Cast<GetBlobInfoTask>();
+      CLIO_CO_AWAIT(GetBlobInfo(typed_task, rctx));
       break;
     }
     case Method::kTagQuery: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<TagQueryTask> typed_task = task_ptr.template Cast<TagQueryTask>();
-      co_await TagQuery(typed_task, rctx);
+      ctp::ipc::FullPtr<TagQueryTask> typed_task = task_ptr.template Cast<TagQueryTask>();
+      CLIO_CO_AWAIT(TagQuery(typed_task, rctx));
       break;
     }
     case Method::kBlobQuery: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<BlobQueryTask> typed_task = task_ptr.template Cast<BlobQueryTask>();
-      co_await BlobQuery(typed_task, rctx);
+      ctp::ipc::FullPtr<BlobQueryTask> typed_task = task_ptr.template Cast<BlobQueryTask>();
+      CLIO_CO_AWAIT(BlobQuery(typed_task, rctx));
       break;
     }
     case Method::kGetTargetInfo: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<GetTargetInfoTask> typed_task = task_ptr.template Cast<GetTargetInfoTask>();
-      co_await GetTargetInfo(typed_task, rctx);
+      ctp::ipc::FullPtr<GetTargetInfoTask> typed_task = task_ptr.template Cast<GetTargetInfoTask>();
+      CLIO_CO_AWAIT(GetTargetInfo(typed_task, rctx));
       break;
     }
     case Method::kFlushMetadata: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<FlushMetadataTask> typed_task = task_ptr.template Cast<FlushMetadataTask>();
-      co_await FlushMetadata(typed_task, rctx);
+      ctp::ipc::FullPtr<FlushMetadataTask> typed_task = task_ptr.template Cast<FlushMetadataTask>();
+      CLIO_CO_AWAIT(FlushMetadata(typed_task, rctx));
       break;
     }
     case Method::kFlushData: {
       // Cast task FullPtr to specific type
-      hipc::FullPtr<FlushDataTask> typed_task = task_ptr.template Cast<FlushDataTask>();
-      co_await FlushData(typed_task, rctx);
+      ctp::ipc::FullPtr<FlushDataTask> typed_task = task_ptr.template Cast<FlushDataTask>();
+      CLIO_CO_AWAIT(FlushData(typed_task, rctx));
       break;
     }
 #ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
@@ -205,12 +206,12 @@ chi::TaskResume Runtime::Run(chi::u32 method, hipc::FullPtr<chi::Task> task_ptr,
       break;
     }
   }
-  // co_return makes this a coroutine returning TaskResume
-  co_return;
+  CLIO_CO_RETURN;
+  CLIO_TASK_BODY_END
 }
 
 void Runtime::SaveTask(chi::u32 method, chi::SaveTaskArchive& archive, 
-                        hipc::FullPtr<chi::Task> task_ptr) {
+                        ctp::ipc::FullPtr<chi::Task> task_ptr) {
   switch (method) {
     case Method::kCreate: {
       auto typed_task = task_ptr.template Cast<CreateTask>();
@@ -357,7 +358,7 @@ void Runtime::SaveTask(chi::u32 method, chi::SaveTaskArchive& archive,
 }
 
 void Runtime::LoadTask(chi::u32 method, chi::LoadTaskArchive& archive,
-                        hipc::FullPtr<chi::Task> task_ptr) {
+                        ctp::ipc::FullPtr<chi::Task> task_ptr) {
   switch (method) {
     case Method::kCreate: {
       auto typed_task = task_ptr.template Cast<CreateTask>();
@@ -503,16 +504,16 @@ void Runtime::LoadTask(chi::u32 method, chi::LoadTaskArchive& archive,
   }
 }
 
-hipc::FullPtr<chi::Task> Runtime::AllocLoadTask(chi::u32 method, chi::LoadTaskArchive& archive) {
-  hipc::FullPtr<chi::Task> task_ptr = NewTask(method);
+ctp::ipc::FullPtr<chi::Task> Runtime::AllocLoadTask(chi::u32 method, chi::LoadTaskArchive& archive) {
+  ctp::ipc::FullPtr<chi::Task> task_ptr = NewTask(method);
   if (!task_ptr.IsNull()) {
     LoadTask(method, archive, task_ptr);
   }
   return task_ptr;
 }
 
-void Runtime::LocalLoadTask(chi::u32 method, chi::LocalLoadTaskArchive& archive,
-                            hipc::FullPtr<chi::Task> task_ptr) {
+void Runtime::LocalLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive,
+                            ctp::ipc::FullPtr<chi::Task> task_ptr) {
   switch (method) {
     case Method::kCreate: {
       auto typed_task = task_ptr.template Cast<CreateTask>();
@@ -682,16 +683,16 @@ void Runtime::LocalLoadTask(chi::u32 method, chi::LocalLoadTaskArchive& archive,
   }
 }
 
-hipc::FullPtr<chi::Task> Runtime::LocalAllocLoadTask(chi::u32 method, chi::LocalLoadTaskArchive& archive) {
-  hipc::FullPtr<chi::Task> task_ptr = NewTask(method);
+ctp::ipc::FullPtr<chi::Task> Runtime::LocalAllocLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive) {
+  ctp::ipc::FullPtr<chi::Task> task_ptr = NewTask(method);
   if (!task_ptr.IsNull()) {
     LocalLoadTask(method, archive, task_ptr);
   }
   return task_ptr;
 }
 
-void Runtime::LocalSaveTask(chi::u32 method, chi::LocalSaveTaskArchive& archive, 
-                             hipc::FullPtr<chi::Task> task_ptr) {
+void Runtime::LocalSaveTask(chi::u32 method, chi::DefaultSaveArchive& archive, 
+                             ctp::ipc::FullPtr<chi::Task> task_ptr) {
   switch (method) {
     case Method::kCreate: {
       auto typed_task = task_ptr.template Cast<CreateTask>();
@@ -861,10 +862,10 @@ void Runtime::LocalSaveTask(chi::u32 method, chi::LocalSaveTaskArchive& archive,
   }
 }
 
-hipc::FullPtr<chi::Task> Runtime::NewCopyTask(chi::u32 method, hipc::FullPtr<chi::Task> orig_task_ptr, bool deep) {
-  auto* ipc_manager = CHI_IPC;
+ctp::ipc::FullPtr<chi::Task> Runtime::NewCopyTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task_ptr, bool deep) {
+  auto* ipc_manager = CLIO_IPC;
   if (!ipc_manager) {
-    return hipc::FullPtr<chi::Task>();
+    return ctp::ipc::FullPtr<chi::Task>();
   }
   
   switch (method) {
@@ -1173,13 +1174,13 @@ hipc::FullPtr<chi::Task> Runtime::NewCopyTask(chi::u32 method, hipc::FullPtr<chi
   }
   
   (void)deep;    // Deep copy parameter reserved for future use
-  return hipc::FullPtr<chi::Task>();
+  return ctp::ipc::FullPtr<chi::Task>();
 }
 
-hipc::FullPtr<chi::Task> Runtime::NewTask(chi::u32 method) {
-  auto* ipc_manager = CHI_IPC;
+ctp::ipc::FullPtr<chi::Task> Runtime::NewTask(chi::u32 method) {
+  auto* ipc_manager = CLIO_IPC;
   if (!ipc_manager) {
-    return hipc::FullPtr<chi::Task>();
+    return ctp::ipc::FullPtr<chi::Task>();
   }
   
   switch (method) {
@@ -1295,13 +1296,13 @@ hipc::FullPtr<chi::Task> Runtime::NewTask(chi::u32 method) {
 #endif
     default: {
       // For unknown methods, return null pointer
-      return hipc::FullPtr<chi::Task>();
+      return ctp::ipc::FullPtr<chi::Task>();
     }
   }
 }
 
-void Runtime::Aggregate(chi::u32 method, hipc::FullPtr<chi::Task> orig_task,
-                        const hipc::FullPtr<chi::Task>& replica_task) {
+void Runtime::Aggregate(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task,
+                        const ctp::ipc::FullPtr<chi::Task>& replica_task) {
   switch (method) {
     case Method::kCreate: {
       auto typed_task = orig_task.template Cast<CreateTask>();
@@ -1447,8 +1448,8 @@ void Runtime::Aggregate(chi::u32 method, hipc::FullPtr<chi::Task> orig_task,
   }
 }
 
-void Runtime::DelTask(chi::u32 method, hipc::FullPtr<chi::Task> task_ptr) {
-  auto* ipc_manager = CHI_IPC;
+void Runtime::DelTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr) {
+  auto* ipc_manager = CLIO_IPC;
   if (!ipc_manager) return;
   switch (method) {
     case Method::kCreate: {
@@ -1568,4 +1569,4 @@ void Runtime::DelTask(chi::u32 method, hipc::FullPtr<chi::Task> task_ptr) {
   }
 }
 
-} // namespace wrp_cte::core
+} // namespace clio::cte::core

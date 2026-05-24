@@ -12,7 +12,7 @@
  * Then set HDF5_BENCH_DIR to the output directory.
  *
  * Requirements:
- * - Built with -DWRP_CTE_ENABLE_KNOWLEDGE_GRAPH=ON
+ * - Built with -DCLIO_CTE_ENABLE_KNOWLEDGE_GRAPH=ON
  * - CTE runtime running (CHI_SERVER_CONF set)
  * - HDF5_BENCH_DIR env var pointing to manifest.json directory
  */
@@ -30,12 +30,12 @@
 
 #include <nlohmann/json.hpp>
 
-#include <chimaera/chimaera.h>
-#include <wrp_cte/core/core_client.h>
-#include <hermes_shm/util/logging.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cte/core/core_client.h>
+#include <clio_ctp/util/logging.h>
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
-#include <wrp_cae/core/factory/summary_operator.h>
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
+#include <clio_cae/core/factory/summary_operator.h>
 #endif
 
 using Clock = std::chrono::high_resolution_clock;
@@ -176,9 +176,9 @@ int main() {
   HLOG(kInfo, "HDF5 Dataset Discovery Benchmark");
   HLOG(kInfo, "========================================");
 
-#ifndef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifndef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
   HLOG(kWarning, "Knowledge graph not compiled. "
-                  "Rebuild with -DWRP_CTE_ENABLE_KNOWLEDGE_GRAPH=ON");
+                  "Rebuild with -DCLIO_CTE_ENABLE_KNOWLEDGE_GRAPH=ON");
   return 0;
 #else
 
@@ -229,10 +229,10 @@ int main() {
     HLOG(kError, "Failed to initialize Chimaera");
     return 1;
   }
-  wrp_cte::core::WRP_CTE_CLIENT_INIT();
+  clio::cte::core::CLIO_CTE_CLIENT_INIT();
 
   // Map tag_name -> TagId for lookup
-  std::unordered_map<std::string, wrp_cte::core::TagId> tag_ids;
+  std::unordered_map<std::string, clio::cte::core::TagId> tag_ids;
 
   // ============================================================
   // Phase 1: Ingest to CTE (store descriptions as blobs)
@@ -244,7 +244,7 @@ int main() {
   for (const auto& ds : datasets) {
     std::string full_tag = kTagPrefix + ds.tag_name;
 
-    wrp_cte::core::Tag tag(full_tag);
+    clio::cte::core::Tag tag(full_tag);
 
     // Store description as a blob (best-effort — not required for KG benchmark)
     try {
@@ -269,7 +269,7 @@ int main() {
   // calls an LLM to extract 4-8 keywords, and writes a "summary" blob.
   // If no LLM endpoint is configured, Phase 2 uses descriptions directly.
   bool has_summaries = false;
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
   {
     const char* endpoint = std::getenv("CAE_SUMMARY_ENDPOINT");
     const char* model = std::getenv("CAE_SUMMARY_MODEL");
@@ -278,9 +278,9 @@ int main() {
       HLOG(kInfo, "=== Phase 1.5: Summarize via LLM ===");
       HLOG(kInfo, "  Endpoint: {}, Model: {}", endpoint, model);
 
-      auto cte_client = std::make_shared<wrp_cte::core::Client>();
-      cte_client->Init(WRP_CTE_CLIENT->pool_id_);
-      wrp_cae::core::SummaryOperator summary_op(cte_client);
+      auto cte_client = std::make_shared<clio::cte::core::Client>();
+      cte_client->Init(CLIO_CTE_CLIENT->pool_id_);
+      clio::cae::core::SummaryOperator summary_op(cte_client);
 
       auto t_sum_start = Clock::now();
       int sum_ok = 0, sum_fail = 0;
@@ -324,7 +324,7 @@ int main() {
     std::string index_text = ds.description;
     if (has_summaries) {
       try {
-        wrp_cte::core::Tag tag(full_tag);
+        clio::cte::core::Tag tag(full_tag);
         chi::u64 sum_size = tag.GetBlobSize("summary");
         if (sum_size > 0 && sum_size < 4096) {
           std::vector<char> buf(sum_size + 1, '\0');
@@ -337,7 +337,7 @@ int main() {
       }
     }
 
-    auto fut = WRP_CTE_CLIENT->AsyncUpdateKnowledgeGraph(
+    auto fut = CLIO_CTE_CLIENT->AsyncUpdateKnowledgeGraph(
         tag_id, full_tag, index_text);
     fut.Wait();
   }
@@ -351,11 +351,11 @@ int main() {
   HLOG(kInfo, "");
   HLOG(kInfo, "=== Phase 2.5: Sync Global IDF ===");
 
-  auto sync_fut = WRP_CTE_CLIENT->AsyncSyncKnowledgeGraph();
+  auto sync_fut = CLIO_CTE_CLIENT->AsyncSyncKnowledgeGraph();
   sync_fut.Wait();
   auto* sync_result = sync_fut.get();
 
-  auto dist_fut = WRP_CTE_CLIENT->AsyncSyncKnowledgeGraph(
+  auto dist_fut = CLIO_CTE_CLIENT->AsyncSyncKnowledgeGraph(
       chi::PoolQuery::Broadcast(), true,
       sync_result->global_n_, sync_result->global_total_terms_,
       sync_result->global_df_);
@@ -389,18 +389,18 @@ int main() {
 
     // SemanticQuery
     auto t0 = Clock::now();
-    auto fut = WRP_CTE_CLIENT->AsyncSemanticQuery(q.text, 5);
+    auto fut = CLIO_CTE_CLIENT->AsyncSemanticQuery(q.text, 5);
     fut.Wait();
     auto t1 = Clock::now();
     double query_ms = Ms(t1 - t0).count();
     total_query_ms += query_ms;
 
     auto* result = fut.get();
-    std::vector<wrp_cte::core::TagId> result_tags = result->result_tags_;
+    std::vector<clio::cte::core::TagId> result_tags = result->result_tags_;
     std::vector<float> result_scores = result->result_scores_;
 
     // Find expected TagId
-    wrp_cte::core::TagId expected_tid;
+    clio::cte::core::TagId expected_tid;
     if (tag_ids.count(q.expected_tag)) {
       expected_tid = tag_ids[q.expected_tag];
     }
@@ -516,5 +516,5 @@ int main() {
   }
 
   return 0;
-#endif  // WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#endif  // CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
 }

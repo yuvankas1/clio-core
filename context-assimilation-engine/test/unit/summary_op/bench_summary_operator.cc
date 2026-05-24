@@ -18,16 +18,16 @@
 #include <string>
 #include <vector>
 
-#include <chimaera/chimaera.h>
-#include <wrp_cae/core/constants.h>
-#include <wrp_cae/core/core_client.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cae/core/constants.h>
+#include <clio_cae/core/core_client.h>
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
-#include <wrp_cae/core/factory/summary_operator.h>
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
+#include <clio_cae/core/factory/summary_operator.h>
 #endif
 
-#include <wrp_cte/core/core_client.h>
-#include <hermes_shm/util/logging.h>
+#include <clio_cte/core/core_client.h>
+#include <clio_ctp/util/logging.h>
 
 using Clock = std::chrono::high_resolution_clock;
 using Ms = std::chrono::duration<double, std::milli>;
@@ -48,9 +48,9 @@ int main(int argc, char* argv[]) {
   HLOG(kInfo, "Summary Operator Performance Benchmark");
   HLOG(kInfo, "========================================");
 
-#ifndef WRP_CAE_ENABLE_SUMMARY_OP
+#ifndef CLIO_CAE_ENABLE_SUMMARY_OP
   HLOG(kWarning, "Summary operator not compiled in. "
-                  "Rebuild with -DWRP_CAE_ENABLE_SUMMARY_OP=ON");
+                  "Rebuild with -DCLIO_CAE_ENABLE_SUMMARY_OP=ON");
   return 0;
 #else
 
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
       HLOG(kError, "Failed to initialize Chimaera");
       return 1;
     }
-    wrp_cte::core::WRP_CTE_CLIENT_INIT();
+    clio::cte::core::CLIO_CTE_CLIENT_INIT();
 
     // ================================================================
     // Benchmark 1: CTE Blob I/O Baseline (no LLM)
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
         // PutBlob timing
         auto t0 = Clock::now();
         {
-          wrp_cte::core::Tag tag(tag_name);
+          clio::cte::core::Tag tag(tag_name);
           tag.PutBlob("description", desc.c_str(), desc.size());
         }
         auto t1 = Clock::now();
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
         // GetBlob timing
         auto t2 = Clock::now();
         {
-          wrp_cte::core::Tag tag(tag_name);
+          clio::cte::core::Tag tag(tag_name);
           chi::u64 sz = tag.GetBlobSize("description");
           std::vector<char> buf(sz);
           tag.GetBlob("description", buf.data(), sz);
@@ -131,9 +131,9 @@ int main(int argc, char* argv[]) {
     HLOG(kInfo, "");
     HLOG(kInfo, "--- Benchmark 2: Full SummaryOperator.Execute() ---");
 
-    auto cte_client = std::shared_ptr<wrp_cte::core::Client>(
-        WRP_CTE_CLIENT, [](wrp_cte::core::Client*) {});
-    wrp_cae::core::SummaryOperator op(cte_client);
+    auto cte_client = std::shared_ptr<clio::cte::core::Client>(
+        CLIO_CTE_CLIENT, [](clio::cte::core::Client*) {});
+    clio::cae::core::SummaryOperator op(cte_client);
 
     double total_execute_ms = 0.0;
     int execute_ops = 0;
@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
 
       // Pre-populate description blob
       {
-        wrp_cte::core::Tag tag(tag_name);
+        clio::cte::core::Tag tag(tag_name);
         tag.PutBlob("description", desc.c_str(), desc.size());
       }
 
@@ -164,7 +164,7 @@ int main(int argc, char* argv[]) {
           if (exec_ms > max_execute) max_execute = exec_ms;
 
           // Read back the summary
-          wrp_cte::core::Tag tag(tag_name);
+          clio::cte::core::Tag tag(tag_name);
           chi::u64 sz = tag.GetBlobSize("summary");
           std::vector<char> buf(sz);
           tag.GetBlob("summary", buf.data(), sz);

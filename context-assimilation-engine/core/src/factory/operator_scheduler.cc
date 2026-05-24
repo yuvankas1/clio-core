@@ -5,17 +5,17 @@
  * OperatorScheduler implementation. See header for design notes.
  */
 
-#include <wrp_cae/core/factory/operator_scheduler.h>
+#include <clio_cae/core/factory/operator_scheduler.h>
 
 #include <vector>
 
-#include <hermes_shm/util/logging.h>
-#include <wrp_cte/core/core_client.h>
+#include <clio_ctp/util/logging.h>
+#include <clio_cte/core/core_client.h>
 
-namespace wrp_cae::core {
+namespace clio::cae::core {
 
 OperatorScheduler::OperatorScheduler(
-    std::shared_ptr<wrp_cte::core::Client> cte_client,
+    std::shared_ptr<clio::cte::core::Client> cte_client,
     SummaryOperator::Config summary_cfg)
     : cte_client_(std::move(cte_client)),
       summary_cfg_(std::move(summary_cfg)) {}
@@ -44,9 +44,9 @@ int OperatorScheduler::RunForTag(const std::string& tag_name) {
   // CTE's UpdateKnowledgeGraph task. If no summary was produced (soft
   // skip), pass empty string — CTE will index only path metadata.
   std::string summary;
-  wrp_cte::core::TagId tag_id;
+  clio::cte::core::TagId tag_id;
   try {
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
     tag_id = tag.GetTagId();
     chi::u64 sz = tag.GetBlobSize("summary");
     if (sz > 0 && sz < 64 * 1024) {
@@ -78,4 +78,4 @@ int OperatorScheduler::RunForTag(const std::string& tag_name) {
   return 0;
 }
 
-}  // namespace wrp_cae::core
+}  // namespace clio::cae::core

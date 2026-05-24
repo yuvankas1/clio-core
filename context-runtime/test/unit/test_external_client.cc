@@ -52,8 +52,8 @@
 #include <string>
 #include <thread>
 
-#include "chimaera/chimaera.h"
-#include "chimaera/ipc_manager.h"
+#include "clio_runtime/clio_runtime.h"
+#include "clio_runtime/ipc_manager.h"
 
 using namespace chi;
 
@@ -70,7 +70,7 @@ pid_t StartServerProcess() {
     (void)freopen("/dev/null", "w", stderr);
 
     // Child process: Start runtime server
-    setenv("CHI_WITH_RUNTIME", "1", 1);
+    setenv("CLIO_WITH_RUNTIME", "1", 1);
     bool success = CHIMAERA_INIT(ChimaeraMode::kServer, true);
     if (!success) {
       _exit(1);
@@ -124,7 +124,17 @@ void CleanupSharedMemory() {
 void CleanupServer(pid_t server_pid) {
   if (server_pid > 0) {
     kill(server_pid, SIGTERM);
-    // Wait for server to exit
+    // Wait up to 5 seconds for graceful shutdown
+    for (int i = 0; i < 50; ++i) {
+      int status;
+      if (waitpid(server_pid, &status, WNOHANG) != 0) {
+        CleanupSharedMemory();
+        return;
+      }
+      usleep(100000);  // 100ms
+    }
+    // Force kill if still alive
+    kill(server_pid, SIGKILL);
     int status;
     waitpid(server_pid, &status, 0);
     // Clean up shared memory left behind by the server
@@ -146,12 +156,12 @@ TEST_CASE("ExternalClient - Basic Connection", "[external_client][ipc]") {
   REQUIRE(server_ready);
 
   // Now connect as EXTERNAL CLIENT (not integrated server+client)
-  setenv("CHI_WITH_RUNTIME", "0", 1);  // Force client-only mode
+  setenv("CLIO_WITH_RUNTIME", "0", 1);  // Force client-only mode
   bool success = CHIMAERA_INIT(ChimaeraMode::kClient, false);
   REQUIRE(success);
 
   // Verify client initialized successfully
-  auto *ipc = CHI_IPC;
+  auto *ipc = CLIO_IPC;
   REQUIRE(ipc != nullptr);
   REQUIRE(ipc->IsInitialized());
 
@@ -194,13 +204,13 @@ TEST_CASE("ExternalClient - Multiple Clients", "[external_client][ipc]") {
       (void)freopen("/dev/null", "w", stderr);
 
       // Child process: Connect as client
-      setenv("CHI_WITH_RUNTIME", "0", 1);
+      setenv("CLIO_WITH_RUNTIME", "0", 1);
       bool success = CHIMAERA_INIT(ChimaeraMode::kClient, false);
       if (!success) {
         _exit(1);
       }
 
-      auto *ipc = CHI_IPC;
+      auto *ipc = CLIO_IPC;
       if (!ipc || !ipc->IsInitialized()) {
         _exit(1);
       }
@@ -238,7 +248,7 @@ TEST_CASE("ExternalClient - Connection Without Server",
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
   // Try to connect as client when NO server exists
-  setenv("CHI_WITH_RUNTIME", "0", 1);
+  setenv("CLIO_WITH_RUNTIME", "0", 1);
 
   // This should fail gracefully (not crash)
   // Note: May succeed if a stale server from another test is still running
@@ -256,14 +266,14 @@ TEST_CASE("ExternalClient - Client Operations", "[external_client][ipc]") {
   REQUIRE(server_ready);
 
   // Connect as client
-  setenv("CHI_WITH_RUNTIME", "0", 1);
+  setenv("CLIO_WITH_RUNTIME", "0", 1);
   bool success = CHIMAERA_INIT(ChimaeraMode::kClient, false);
   REQUIRE(success);
 
-  auto *ipc = CHI_IPC;
+  auto *ipc = CLIO_IPC;
   REQUIRE(ipc != nullptr);
 
-  // In TCP mode (default), shared_header_ is not available so
+  // In TCP mode (default), num_sched_queues_ is not set so
   // GetNumSchedQueues returns 0. In SHM mode it would be > 0.
   u32 num_queues = ipc->GetNumSchedQueues();
   if (ipc->GetIpcMode() == IpcMode::kShm) {

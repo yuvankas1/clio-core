@@ -16,17 +16,17 @@
  *     level     0|1|2 = name | metadata | content (default: 0)
  */
 
-#include <chimaera/chimaera.h>
-#include <wrp_cte/core/core_client.h>
-#include <wrp_cte/core/core_runtime.h>
-#include <wrp_cte/core/core_tasks.h>
-#include <wrp_cte/core/content_transfer_engine.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cte/core/core_client.h>
+#include <clio_cte/core/core_runtime.h>
+#include <clio_cte/core/core_tasks.h>
+#include <clio_cte/core/content_transfer_engine.h>
 
 #ifdef ACROPOLIS_BENCH_USE_SUMMARY
-#include <wrp_cae/core/factory/summary_operator.h>
-#include <wrp_cae/core/factory/operator_scheduler.h>
-#include <wrp_cae/core/factory/hashing.h>
-#include <wrp_cae/core/factory/base_assimilator.h>  // for CategoryFromPath
+#include <clio_cae/core/factory/summary_operator.h>
+#include <clio_cae/core/factory/operator_scheduler.h>
+#include <clio_cae/core/factory/hashing.h>
+#include <clio_cae/core/factory/base_assimilator.h>  // for CategoryFromPath
 #endif
 
 #include <httplib.h>
@@ -51,7 +51,7 @@
 #include <vector>
 
 namespace fs = std::filesystem;
-using namespace wrp_cte::core;
+using namespace clio::cte::core;
 
 namespace {
 
@@ -210,13 +210,13 @@ int main(int argc, char **argv) {
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(600));
 
-  if (!WRP_CTE_CLIENT_INIT()) {
-    std::cerr << "WRP_CTE_CLIENT_INIT failed\n";
+  if (!CLIO_CTE_CLIENT_INIT()) {
+    std::cerr << "CLIO_CTE_CLIENT_INIT failed\n";
     return 2;
   }
 
   Client client(pool_id);
-  WRP_CTE_CLIENT->Init(pool_id);
+  CLIO_CTE_CLIENT->Init(pool_id);
 
   // --- Collect file list ---
   // Depth is set globally in the compose YAML emitted above
@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
     }
     if (!loaded_from_cache) {
     // Worker pool — N threads each holding a SummaryOperator. The CTE client
-    // is shared via the global WRP_CTE_CLIENT singleton.
+    // is shared via the global CLIO_CTE_CLIENT singleton.
     int num_workers = 8;
     if (const char *w = std::getenv("ACROPOLIS_BENCH_WORKERS")) {
       num_workers = std::max(1, std::atoi(w));
@@ -321,10 +321,10 @@ int main(int argc, char **argv) {
       //   AsyncUpdateKnowledgeGraph (CTE chimaera task → KGBackend upsert).
       // Config is read from CAE_SUMMARY_* env vars to stay compatible with
       // the bench's existing invocation conventions.
-      auto cte_shared = std::shared_ptr<wrp_cte::core::Client>(
-          WRP_CTE_CLIENT, [](wrp_cte::core::Client *) {});
-      wrp_cae::core::OperatorScheduler scheduler(
-          cte_shared, wrp_cae::core::SummaryOperator::Config::FromEnv());
+      auto cte_shared = std::shared_ptr<clio::cte::core::Client>(
+          CLIO_CTE_CLIENT, [](clio::cte::core::Client *) {});
+      clio::cae::core::OperatorScheduler scheduler(
+          cte_shared, clio::cae::core::SummaryOperator::Config::FromEnv());
 
       while (true) {
         std::string p;
@@ -349,7 +349,7 @@ int main(int argc, char **argv) {
         int last_rc = 99;
         std::string last_err;
         try {
-          wrp_cte::core::Tag tag(p);
+          clio::cte::core::Tag tag(p);
           tag.PutBlob("description", desc.c_str(), desc.size());
 
           // 2. Write category + content_hash on description blob meta.
@@ -357,9 +357,9 @@ int main(int argc, char **argv) {
           //    B8-mini labeling here so the production pipeline's
           //    idempotency / category routing has the data it expects.
           {
-            wrp_cte::core::BlobMeta dmeta;
-            dmeta.category = wrp_cae::core::CategoryFromPath(p);
-            dmeta.content_hash = wrp_cae::core::hashing::Fnv1a64Hex(desc);
+            clio::cte::core::BlobMeta dmeta;
+            dmeta.category = clio::cae::core::CategoryFromPath(p);
+            dmeta.content_hash = clio::cae::core::hashing::Fnv1a64Hex(desc);
             tag.PutBlobMeta("description", dmeta);
           }
 

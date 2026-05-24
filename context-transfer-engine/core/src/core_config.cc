@@ -31,16 +31,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <wrp_cte/core/core_config.h>
+#include <clio_cte/core/core_config.h>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
 #include <cctype>
 #include <cstdio>
-#include "hermes_shm/util/logging.h"
+#include "clio_ctp/util/logging.h"
 
-namespace wrp_cte::core {
+namespace clio::cte::core {
 
 // Config class implementation
 bool Config::LoadFromFile(const std::string &config_file_path) {
@@ -120,7 +120,7 @@ bool Config::LoadFromString(const std::string &yaml_string) {
 }
 
 bool Config::LoadFromEnvironment() {
-  std::string env_path = hshm::SystemInfo::Getenv(config_env_var_);
+  std::string env_path = ctp::SystemInfo::Getenv(config_env_var_);
   if (env_path.empty()) {
     HLOG(kInfo, "Config info: Environment variable {} not set, using default configuration", config_env_var_);
     return true; // Not an error, use defaults
@@ -422,7 +422,7 @@ bool Config::ParsePerformanceConfig(const YAML::Node &node) {
 
   if (node["metadata_log_path"]) {
     std::string path = node["metadata_log_path"].as<std::string>();
-    performance_.metadata_log_path_ = hshm::ConfigParse::ExpandPath(path);
+    performance_.metadata_log_path_ = ctp::ConfigParse::ExpandPath(path);
   }
 
   if (node["flush_data_period_ms"]) {
@@ -475,7 +475,7 @@ bool Config::ParseStorageConfig(const YAML::Node &node) {
       return false;
     }
     std::string path = device_node["path"].as<std::string>();
-    device_config.path_ = hshm::ConfigParse::ExpandPath(path);
+    device_config.path_ = ctp::ConfigParse::ExpandPath(path);
     
     // Parse bdev_type (required)
     if (!device_node["bdev_type"]) {
@@ -647,4 +647,4 @@ std::string Config::FormatSizeBytes(chi::u64 size_bytes) const {
   }
 }
 
-}  // namespace wrp_cte::core
+}  // namespace clio::cte::core

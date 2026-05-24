@@ -11,7 +11,7 @@
  * Requirements:
  * - CAE_SUMMARY_ENDPOINT and CAE_SUMMARY_MODEL must be set
  * - A running inference server at the endpoint
- * - Built with -DWRP_CAE_ENABLE_SUMMARY_OP=ON -DWRP_CTE_ENABLE_KNOWLEDGE_GRAPH=ON
+ * - Built with -DCLIO_CAE_ENABLE_SUMMARY_OP=ON -DCLIO_CTE_ENABLE_KNOWLEDGE_GRAPH=ON
  */
 
 #include <chrono>
@@ -22,9 +22,9 @@
 #include <vector>
 #include <unordered_map>
 
-#include <chimaera/chimaera.h>
-#include <wrp_cte/core/core_client.h>
-#include <hermes_shm/util/logging.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cte/core/core_client.h>
+#include <clio_ctp/util/logging.h>
 
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
@@ -226,9 +226,9 @@ int main() {
   HLOG(kInfo, "Knowledge Graph Pipeline Benchmark");
   HLOG(kInfo, "========================================");
 
-#ifndef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifndef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
   HLOG(kWarning, "Knowledge graph not compiled. "
-                  "Rebuild with -DWRP_CTE_ENABLE_KNOWLEDGE_GRAPH=ON");
+                  "Rebuild with -DCLIO_CTE_ENABLE_KNOWLEDGE_GRAPH=ON");
   return 0;
 #else
 
@@ -254,11 +254,11 @@ int main() {
     HLOG(kError, "Failed to initialize Chimaera");
     return 1;
   }
-  wrp_cte::core::WRP_CTE_CLIENT_INIT();
+  clio::cte::core::CLIO_CTE_CLIENT_INIT();
 
   // Map session ID → TagId for later lookup
   const std::string tag_prefix = "kg_bench_";
-  std::unordered_map<std::string, wrp_cte::core::TagId> session_tag_ids;
+  std::unordered_map<std::string, clio::cte::core::TagId> session_tag_ids;
 
   // ============================================================
   // Phase 1: Ingest — one tag per session
@@ -271,7 +271,7 @@ int main() {
     std::string tag_name = tag_prefix + sess.id;
     std::string blob_data = sess.date + "\n" + sess.content;
 
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
     tag.PutBlob("raw", blob_data.c_str(), blob_data.size());
 
     session_tag_ids[sess.id] = tag.GetTagId();
@@ -293,7 +293,7 @@ int main() {
 
   for (const auto& sess : kSessions) {
     std::string tag_name = tag_prefix + sess.id;
-    wrp_cte::core::Tag tag(tag_name);
+    clio::cte::core::Tag tag(tag_name);
 
     // Read raw blob back
     chi::u64 sz = tag.GetBlobSize("raw");
@@ -333,7 +333,7 @@ int main() {
     auto tag_id = session_tag_ids[sess.id];
     const auto& summary = summaries[sess.id];
 
-    auto fut = WRP_CTE_CLIENT->AsyncUpdateKnowledgeGraph(tag_id, summary);
+    auto fut = CLIO_CTE_CLIENT->AsyncUpdateKnowledgeGraph(tag_id, summary);
     fut.Wait();
     HLOG(kInfo, "  Added {} to KG", sess.id);
   }
@@ -360,10 +360,10 @@ int main() {
 
     // Semantic query
     auto t_search_start = Clock::now();
-    auto fut = WRP_CTE_CLIENT->AsyncSemanticQuery(q.text, 3);
+    auto fut = CLIO_CTE_CLIENT->AsyncSemanticQuery(q.text, 3);
     fut.Wait();
     auto *task_result = fut.get();
-    std::vector<wrp_cte::core::TagId> result_tags = task_result->result_tags_;
+    std::vector<clio::cte::core::TagId> result_tags = task_result->result_tags_;
     std::vector<float> result_scores = task_result->result_scores_;
     auto t_search_end = Clock::now();
     double search_ms = Ms(t_search_end - t_search_start).count();
@@ -391,7 +391,7 @@ int main() {
       for (const auto& [sid, stored_tid] : session_tag_ids) {
         if (stored_tid == tid) {
           std::string tag_name = tag_prefix + sid;
-          wrp_cte::core::Tag tag(tag_name);
+          clio::cte::core::Tag tag(tag_name);
           chi::u64 sz = tag.GetBlobSize("raw");
           std::vector<char> buf(sz);
           tag.GetBlob("raw", buf.data(), sz);
@@ -451,5 +451,5 @@ int main() {
   HLOG(kInfo, "========================================");
 
   return 0;
-#endif  // WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#endif  // CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
 }

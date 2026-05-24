@@ -54,19 +54,19 @@
 #include <vector>
 
 // Chimaera and CAE headers
-#include <chimaera/chimaera.h>
-#include <wrp_cae/core/constants.h>
-#include <wrp_cae/core/core_client.h>
+#include <clio_runtime/clio_runtime.h>
+#include <clio_cae/core/constants.h>
+#include <clio_cae/core/core_client.h>
 
-#ifdef WRP_CAE_ENABLE_SUMMARY_OP
-#include <wrp_cae/core/factory/summary_operator.h>
+#ifdef CLIO_CAE_ENABLE_SUMMARY_OP
+#include <clio_cae/core/factory/summary_operator.h>
 #endif
 
 // CTE headers
-#include <wrp_cte/core/core_client.h>
+#include <clio_cte/core/core_client.h>
 
 // Logging
-#include <hermes_shm/util/logging.h>
+#include <clio_ctp/util/logging.h>
 
 const std::string kTestTagName = "test_summary_op_tag";
 
@@ -75,9 +75,9 @@ int main(int argc, char* argv[]) {
   HLOG(kInfo, "Summary Operator Unit Test");
   HLOG(kInfo, "========================================");
 
-#ifndef WRP_CAE_ENABLE_SUMMARY_OP
+#ifndef CLIO_CAE_ENABLE_SUMMARY_OP
   HLOG(kWarning, "Summary operator not compiled in. "
-                  "Rebuild with -DWRP_CAE_ENABLE_SUMMARY_OP=ON");
+                  "Rebuild with -DCLIO_CAE_ENABLE_SUMMARY_OP=ON");
   HLOG(kInfo, "TEST SKIPPED");
   return 0;
 #else
@@ -113,13 +113,13 @@ int main(int argc, char* argv[]) {
 
     // Step 2: Initialize CTE client
     HLOG(kInfo, "[STEP 2] Connecting to CTE...");
-    wrp_cte::core::WRP_CTE_CLIENT_INIT();
+    clio::cte::core::CLIO_CTE_CLIENT_INIT();
     HLOG(kSuccess, "CTE client initialized");
 
     // Step 3: Create a tag with a mock "description" blob
     HLOG(kInfo, "[STEP 3] Creating tag with description blob...");
     {
-      wrp_cte::core::Tag tag(kTestTagName);
+      clio::cte::core::Tag tag(kTestTagName);
       std::string description = "binary<size=1048576, offset=0>";
       tag.PutBlob("description", description.c_str(), description.size());
       HLOG(kSuccess, "Description blob stored: '{}'", description);
@@ -136,9 +136,9 @@ int main(int argc, char* argv[]) {
 
     // Step 4: Run the SummaryOperator
     HLOG(kInfo, "[STEP 4] Running SummaryOperator...");
-    auto cte_client = std::shared_ptr<wrp_cte::core::Client>(
-        WRP_CTE_CLIENT, [](wrp_cte::core::Client*) {});
-    wrp_cae::core::SummaryOperator op(cte_client);
+    auto cte_client = std::shared_ptr<clio::cte::core::Client>(
+        CLIO_CTE_CLIENT, [](clio::cte::core::Client*) {});
+    clio::cae::core::SummaryOperator op(cte_client);
 
     int rc = op.Execute(kTestTagName);
     if (rc != 0) {
@@ -151,7 +151,7 @@ int main(int argc, char* argv[]) {
     // Step 5: Verify the summary blob
     HLOG(kInfo, "[STEP 5] Verifying summary blob...");
     {
-      wrp_cte::core::Tag tag(kTestTagName);
+      clio::cte::core::Tag tag(kTestTagName);
       chi::u64 summary_size = tag.GetBlobSize("summary");
 
       if (summary_size == 0) {
@@ -180,5 +180,5 @@ int main(int argc, char* argv[]) {
   HLOG(kInfo, "========================================");
 
   return exit_code;
-#endif  // WRP_CAE_ENABLE_SUMMARY_OP
+#endif  // CLIO_CAE_ENABLE_SUMMARY_OP
 }
