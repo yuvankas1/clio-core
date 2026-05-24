@@ -14,11 +14,11 @@ include_directories(
 # implementation-specific MPI_Status fields, so it has to know which.
 find_package(MPI REQUIRED)
 if(CLIO_CTE_MPICH)
-        message(STATUS "MPIIO adapter: forced MPICH via -DWRP_CTE_MPICH")
-        add_definitions(-DWRP_CTE_MPICH)
+        message(STATUS "MPIIO adapter: forced MPICH via -DCLIO_CTE_MPICH")
+        add_definitions(-DCLIO_CTE_MPICH)
 elseif(CLIO_CTE_OPENMPI)
-        message(STATUS "MPIIO adapter: forced OpenMPI via -DWRP_CTE_OPENMPI")
-        add_definitions(-DWRP_CTE_OPENMPI)
+        message(STATUS "MPIIO adapter: forced OpenMPI via -DCLIO_CTE_OPENMPI")
+        add_definitions(-DCLIO_CTE_OPENMPI)
 else()
         execute_process(
                 COMMAND ${MPI_C_COMPILER} -showme:version
@@ -29,7 +29,7 @@ else()
         if(_mpiio_showme MATCHES "[Oo]pen ?MPI"
            OR _mpiio_showme_err MATCHES "[Oo]pen ?MPI")
                 message(STATUS "MPIIO adapter: detected OpenMPI")
-                add_definitions(-DWRP_CTE_OPENMPI)
+                add_definitions(-DCLIO_CTE_OPENMPI)
         else()
                 execute_process(
                         COMMAND ${MPI_C_COMPILER} -compile_info
@@ -39,11 +39,11 @@ else()
                 if(_mpiio_compile_info MATCHES "mpich"
                    OR _mpiio_compile_info MATCHES "MPICH")
                         message(STATUS "MPIIO adapter: detected MPICH")
-                        add_definitions(-DWRP_CTE_MPICH)
+                        add_definitions(-DCLIO_CTE_MPICH)
                 else()
                         message(FATAL_ERROR
                                 "MPIIO adapter: could not detect MPI implementation. "
-                                "Pass -DWRP_CTE_OPENMPI=ON or -DWRP_CTE_MPICH=ON.")
+                                "Pass -DCLIO_CTE_OPENMPI=ON or -DCLIO_CTE_MPICH=ON.")
                 endif()
         endif()
 endif()

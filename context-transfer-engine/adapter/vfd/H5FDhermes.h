@@ -46,8 +46,8 @@
 
 #include <clio_ctp/util/logging.h>
 
-#define H5FD_WRP_CTE_NAME  "hdf5_hermes_vfd"
-#define H5FD_WRP_CTE_VALUE ((H5FD_class_value_t)(3200))
+#define H5FD_CLIO_CTE_NAME  "hdf5_hermes_vfd"
+#define H5FD_CLIO_CTE_VALUE ((H5FD_class_value_t)(3200))
 
 #define CLIO_CTE_FORWARD_DECL(func_, ret_, args_) \
   typedef ret_(*real_t_##func_##_) args_;       \

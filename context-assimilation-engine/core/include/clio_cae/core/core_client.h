@@ -193,8 +193,5 @@ bool CLIO_CAE_CLIENT_INIT(const std::string &config_path = "",
 // alias.  Safe to use the simple `namespace X = Y;` form because no
 // external chimod opens `namespace clio_cae::xxx {}`.
 namespace clio_cae = clio::cae;
-namespace wrp_cae = clio::cae;
-#define WRP_CAE_CLIENT CLIO_CAE_CLIENT
-#define WRP_CAE_CLIENT_INIT CLIO_CAE_CLIENT_INIT
 
 #endif  // CLIO_CAE_CORE_CLIENT_H_

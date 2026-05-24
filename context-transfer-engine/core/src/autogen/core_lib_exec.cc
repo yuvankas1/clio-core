@@ -184,7 +184,7 @@ chi::TaskResume Runtime::Run(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_
       CLIO_CO_AWAIT(FlushData(typed_task, rctx));
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       hipc::FullPtr<UpdateKnowledgeGraphTask> typed_task = task_ptr.template Cast<UpdateKnowledgeGraphTask>();
       co_await UpdateKnowledgeGraph(typed_task, rctx);
@@ -333,7 +333,7 @@ void Runtime::SaveTask(chi::u32 method, chi::SaveTaskArchive& archive,
       archive << *typed_task.ptr_;
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       auto typed_task = task_ptr.template Cast<UpdateKnowledgeGraphTask>();
       archive << *typed_task.ptr_;
@@ -480,7 +480,7 @@ void Runtime::LoadTask(chi::u32 method, chi::LoadTaskArchive& archive,
       archive >> *typed_task.ptr_;
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       auto typed_task = task_ptr.template Cast<UpdateKnowledgeGraphTask>();
       archive >> *typed_task.ptr_;
@@ -659,7 +659,7 @@ void Runtime::LocalLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive,
       archive >> *typed_task.ptr_;
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       auto typed_task = task_ptr.template Cast<UpdateKnowledgeGraphTask>();
       archive >> *typed_task.ptr_;
@@ -838,7 +838,7 @@ void Runtime::LocalSaveTask(chi::u32 method, chi::DefaultSaveArchive& archive,
       archive << *typed_task.ptr_;
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       auto typed_task = task_ptr.template Cast<UpdateKnowledgeGraphTask>();
       archive << *typed_task.ptr_;
@@ -1133,7 +1133,7 @@ ctp::ipc::FullPtr<chi::Task> Runtime::NewCopyTask(chi::u32 method, ctp::ipc::Ful
       }
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       auto new_task_ptr = ipc_manager->NewTask<UpdateKnowledgeGraphTask>();
       if (!new_task_ptr.IsNull()) {
@@ -1280,7 +1280,7 @@ ctp::ipc::FullPtr<chi::Task> Runtime::NewTask(chi::u32 method) {
       auto new_task_ptr = ipc_manager->NewTask<FlushDataTask>();
       return new_task_ptr.template Cast<chi::Task>();
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       auto new_task_ptr = ipc_manager->NewTask<UpdateKnowledgeGraphTask>();
       return new_task_ptr.template Cast<chi::Task>();
@@ -1424,7 +1424,7 @@ void Runtime::Aggregate(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task,
       typed_task->Aggregate(replica_task);
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       auto typed_task = orig_task.template Cast<UpdateKnowledgeGraphTask>();
       typed_task->Aggregate(replica_task);
@@ -1548,7 +1548,7 @@ void Runtime::DelTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr) {
       ipc_manager->DelTask(task_ptr.template Cast<FlushDataTask>());
       break;
     }
-#ifdef WRP_CTE_ENABLE_KNOWLEDGE_GRAPH
+#ifdef CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
     case Method::kUpdateKnowledgeGraph: {
       ipc_manager->DelTask(task_ptr.template Cast<UpdateKnowledgeGraphTask>());
       break;

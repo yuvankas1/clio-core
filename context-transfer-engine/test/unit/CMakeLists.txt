@@ -11,9 +11,13 @@ cmake_minimum_required(VERSION 3.10)
 # Find required test dependencies
 # Catch2 is already found by root CMakeLists.txt
 
-# Create the test executable
+# Create the test executable — one file per target to avoid TEST_CASE
+# line-number collisions that produce duplicate symbol link errors.
 add_executable(cte_core_unit_tests
     test_core_minimal.cc
+)
+
+add_executable(cte_core_functionality_simple_tests
     test_core_functionality_simple.cc
 )
 
@@ -96,6 +100,8 @@ target_link_libraries(bench_repo_scan
     ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
 )
+target_compile_definitions(bench_repo_scan PRIVATE
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH)
 if(CLIO_CORE_ENABLE_CAE)
     # Compile summary_operator.cc directly into the benchmark to avoid the
     # ABI conflict between the system libcurl that libhdf5 needs and the conda
@@ -110,7 +116,8 @@ if(CLIO_CORE_ENABLE_CAE)
     target_link_libraries(bench_repo_scan clio_cae_core_client)
     target_compile_definitions(bench_repo_scan PRIVATE
         ACROPOLIS_BENCH_USE_SUMMARY
-        CLIO_CAE_ENABLE_SUMMARY_OP)
+        CLIO_CAE_ENABLE_SUMMARY_OP
+        CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH)
     # SummaryOperator uses libcurl via its own #include in summary_operator.cc
     if(EXISTS "/usr/lib/x86_64-linux-gnu/libcurl.so.4")
         target_link_libraries(bench_repo_scan
@@ -132,6 +139,10 @@ endif()
 
 # Include directories for all tests - using unified simple_test.h framework
 target_include_directories(cte_core_unit_tests PRIVATE
+  ${CMAKE_SOURCE_DIR}/test  # For unified simple_test.h
+)
+
+target_include_directories(cte_core_functionality_simple_tests PRIVATE
   ${CMAKE_SOURCE_DIR}/test  # For unified simple_test.h
 )
 
@@ -177,6 +188,17 @@ target_link_libraries(cte_core_unit_tests
     clio_bdev_client        # Bdev client for BdevType enum
     ctp::cxx                    # HermesShm library
     ${CMAKE_THREAD_LIBS_INIT}    # Threading support
+)
+
+target_link_libraries(cte_core_functionality_simple_tests
+    clio_cte_core_runtime
+    clio_cte_core_client
+    clio_admin_runtime
+    clio_admin_client
+    clio_bdev_runtime
+    clio_bdev_client
+    ctp::cxx
+    ${CMAKE_THREAD_LIBS_INIT}
 )
 
 # Link test_core_functionality - using simple_test.h framework (NOT Catch2)
@@ -280,9 +302,12 @@ target_include_directories(test_depth_controller PRIVATE
     ${CMAKE_SOURCE_DIR}/test     # For unified simple_test.h
 )
 target_link_libraries(test_depth_controller
-    clio_cte_core_client          # Pulls in wrp_cte headers + httplib
+    clio_cte_core_client          # Pulls in clio_cte headers + httplib
     ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
+)
+target_compile_definitions(test_depth_controller PRIVATE
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
 )
 
 target_include_directories(test_indexing_depth_config PRIVATE
@@ -295,6 +320,9 @@ target_link_libraries(test_indexing_depth_config
     ctp::cxx
     ctp::configure
     ${CMAKE_THREAD_LIBS_INIT}
+)
+target_compile_definitions(test_indexing_depth_config PRIVATE
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
 )
 
 target_include_directories(test_depth_runtime_e2e PRIVATE
@@ -309,6 +337,9 @@ target_link_libraries(test_depth_runtime_e2e
     clio_bdev_client
     ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
+)
+target_compile_definitions(test_depth_runtime_e2e PRIVATE
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
 )
 
 target_include_directories(test_qdrant_backend_live PRIVATE
@@ -338,6 +369,10 @@ target_link_libraries(test_depth_qdrant_e2e
     ctp::cxx
     ${CMAKE_THREAD_LIBS_INIT}
 )
+target_compile_definitions(test_depth_qdrant_e2e PRIVATE
+    CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
+    CLIO_CTE_KG_QDRANT
+)
 
 if(TARGET test_depth_hdf5_e2e)
   target_include_directories(test_depth_hdf5_e2e PRIVATE
@@ -354,6 +389,9 @@ if(TARGET test_depth_hdf5_e2e)
       ctp::cxx
       ${HDF5_C_LIBRARIES}
       ${CMAKE_THREAD_LIBS_INIT}
+  )
+  target_compile_definitions(test_depth_hdf5_e2e PRIVATE
+      CLIO_CTE_ENABLE_KNOWLEDGE_GRAPH
   )
 endif()
 

@@ -68,7 +68,7 @@
 #define USE_HERMES
 
 /* The driver identification number, initialized at runtime */
-static hid_t H5FD_WRP_CTE_g = H5I_INVALID_HID;
+static hid_t H5FD_CLIO_CTE_g = H5I_INVALID_HID;
 
 /* Identifiers for HDF5's error API */
 hid_t H5FDhermes_err_stack_g = H5I_INVALID_HID;
@@ -86,9 +86,9 @@ using clio::cae::IoStatus;
 /* POSIX I/O mode used as the third parameter to open/_open
  * when creating a new file (O_CREAT is set). */
 #if defined(H5_HAVE_WIN32_API)
-#define H5FD_WRP_CTE_POSIX_CREATE_MODE_RW (_S_IREAD | _S_IWRITE)
+#define H5FD_CLIO_CTE_POSIX_CREATE_MODE_RW (_S_IREAD | _S_IWRITE)
 #else
-#define H5FD_WRP_CTE_POSIX_CREATE_MODE_RW 0666
+#define H5FD_CLIO_CTE_POSIX_CREATE_MODE_RW 0666
 #endif
 
 #define MAXADDR (((haddr_t)1 << (8 * sizeof(off_t) - 1)) - 1)
@@ -134,8 +134,8 @@ static herr_t H5FD__hermes_write(H5FD_t *_file, H5FD_mem_t type, hid_t fapl_id,
 
 static const H5FD_class_t H5FD_hermes_g = {
     H5FD_CLASS_VERSION,   /* struct version       */
-    H5FD_WRP_CTE_VALUE,   /* value                */
-    H5FD_WRP_CTE_NAME,    /* name                 */
+    H5FD_CLIO_CTE_VALUE,   /* value                */
+    H5FD_CLIO_CTE_NAME,    /* name                 */
     MAXADDR,              /* maxaddr              */
     H5F_CLOSE_STRONG,     /* fc_degree            */
     H5FD__hermes_term,    /* terminate            */
@@ -189,12 +189,12 @@ static const H5FD_class_t H5FD_hermes_g = {
 hid_t H5FD_hermes_init(void) {
   hid_t ret_value = H5I_INVALID_HID; /* Return value */
 
-  if (H5I_VFL != H5Iget_type(H5FD_WRP_CTE_g)) {
-    H5FD_WRP_CTE_g = H5FDregister(&H5FD_hermes_g);
+  if (H5I_VFL != H5Iget_type(H5FD_CLIO_CTE_g)) {
+    H5FD_CLIO_CTE_g = H5FDregister(&H5FD_hermes_g);
   }
 
   /* Set return value */
-  ret_value = H5FD_WRP_CTE_g;
+  ret_value = H5FD_CLIO_CTE_g;
   return ret_value;
 } /* end H5FD_hermes_init() */
 
@@ -226,7 +226,7 @@ static herr_t H5FD__hermes_term(void) {
   }
 
   /* Reset VFL ID */
-  H5FD_WRP_CTE_g = H5I_INVALID_HID;
+  H5FD_CLIO_CTE_g = H5I_INVALID_HID;
 
   // TODO(llogan): Probably should add back at some point.
   // HERMES->Finalize();
@@ -267,7 +267,7 @@ static H5FD_t *H5FD__hermes_open(const char *name, unsigned flags,
   bool stat_exists;
   AdapterStat stat;
   stat.flags_ = o_flags;
-  stat.st_mode_ = H5FD_WRP_CTE_POSIX_CREATE_MODE_RW;
+  stat.st_mode_ = H5FD_CLIO_CTE_POSIX_CREATE_MODE_RW;
   File f = fs_api->Open(stat, name);
   fd = f.hermes_fd_;
   HLOG(kDebug, "");

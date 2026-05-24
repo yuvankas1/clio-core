@@ -50,8 +50,8 @@ if(TARGET clio_cte_core_client)
 endif()
 
 # Knowledge graph / Acropolis compile definitions. KG feature work was
-# originally on 254-investigate-cuda-uvm under WRP_CTE_* names; the branch-
-# merge into semantic-search renamed them to CLIO_CTE_*. No legacy WRP_CTE_KG_*
+# originally on 254-investigate-cuda-uvm under CLIO_CTE_* names; the branch-
+# merge into semantic-search renamed them to CLIO_CTE_*. No legacy CLIO_CTE_KG_*
 # alias is provided.
 #
 # core_runtime.h includes the KG headers (depth_controller, kg_backend, etc.)

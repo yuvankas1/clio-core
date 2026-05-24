@@ -62,8 +62,22 @@ static constexpr chi::PoolId kCtePoolId(512, 0);
 // CTE Core Pool Name constant
 static constexpr const char *kCtePoolName = "clio_cte_core";
 
-// Timestamp type definition
-using Timestamp = std::chrono::time_point<std::chrono::steady_clock>;
+// Timestamp type — nanoseconds since steady_clock epoch.  Stored as a plain
+// integer (instead of std::chrono::time_point) so it survives serialization
+// and round-trips across the GPU/host boundary without needing chrono headers
+// in device code.  See `NowNs()` below for the canonical "now" helper.
+using Timestamp = chi::u64;
+
+CTP_CROSS_FUN inline Timestamp NowNs() {
+#if CTP_IS_HOST
+  return static_cast<Timestamp>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
+#else
+  return 0;
+#endif
+}
 
 /**
  * IndexDepth — Acropolis adaptive indexing depth levels.
@@ -588,8 +602,8 @@ struct TagInfo {
       : tag_name_(),
         tag_id_(TagId::GetNull()),
         total_size_(0),
-        last_modified_(std::chrono::steady_clock::now()),
-        last_read_(std::chrono::steady_clock::now()),
+        last_modified_(clio::cte::core::NowNs()),
+        last_read_(clio::cte::core::NowNs()),
         summary_(),
         index_depth_(IndexDepth::kNameOnly) {}
 
@@ -597,8 +611,8 @@ struct TagInfo {
       : tag_name_(tag_name),
         tag_id_(tag_id),
         total_size_(0),
-        last_modified_(std::chrono::steady_clock::now()),
-        last_read_(std::chrono::steady_clock::now()),
+        last_modified_(clio::cte::core::NowNs()),
+        last_read_(clio::cte::core::NowNs()),
         summary_(),
         index_depth_(IndexDepth::kNameOnly) {}
 
@@ -667,8 +681,8 @@ struct BlobInfo {
       : blob_name_(),
         blocks_(),
         score_(0.0f),
-        last_modified_(std::chrono::steady_clock::now()),
-        last_read_(std::chrono::steady_clock::now()),
+        last_modified_(clio::cte::core::NowNs()),
+        last_read_(clio::cte::core::NowNs()),
         compress_lib_(0),
         compress_preset_(2),
         trace_key_(0) {}
@@ -677,8 +691,8 @@ struct BlobInfo {
       : blob_name_(blob_name),
         blocks_(),
         score_(score),
-        last_modified_(std::chrono::steady_clock::now()),
-        last_read_(std::chrono::steady_clock::now()),
+        last_modified_(clio::cte::core::NowNs()),
+        last_read_(clio::cte::core::NowNs()),
         compress_lib_(0),
         compress_preset_(2),
         trace_key_(0) {}
@@ -716,6 +730,8 @@ struct Context {
   int trace_node_;        // Node ID where trace was initiated
   int min_persistence_level_;  // 0=volatile, 1=temp-nonvolatile, 2=long-term
   int persistence_target_;     // Specific persistence level to target (-1 = use min_persistence_level_)
+  chi::u64 preallocate_;  // Preallocate this many bytes for GPU block storage
+                          // (0 = disabled)
 
   // Dynamic statistics (populated after compression)
   chi::u64 actual_original_size_;    // Original data size in bytes
@@ -739,6 +755,7 @@ struct Context {
         trace_node_(-1),
         min_persistence_level_(0),
         persistence_target_(-1),
+        preallocate_(0),
         actual_original_size_(0),
         actual_compressed_size_(0),
         actual_compression_ratio_(1.0),
@@ -751,8 +768,15 @@ struct Context {
     ar(dynamic_compress_, compress_lib_, compress_preset_, target_psnr_,
        psnr_chance_, max_performance_, consumer_node_, data_type_, trace_,
        trace_key_, trace_node_, min_persistence_level_, persistence_target_,
-       actual_original_size_, actual_compressed_size_,
+       preallocate_, actual_original_size_, actual_compressed_size_,
        actual_compression_ratio_, actual_compress_time_ms_, actual_psnr_db_);
+  }
+
+  // Factory for GPU preallocation contexts (matches main's API).
+  static Context Preallocate(chi::u64 size) {
+    Context ctx;
+    ctx.preallocate_ = size;
+    return ctx;
   }
 };
 
@@ -785,8 +809,8 @@ struct CteTelemetry {
         off_(0),
         size_(0),
         tag_id_(TagId::GetNull()),
-        mod_time_(std::chrono::steady_clock::now()),
-        read_time_(std::chrono::steady_clock::now()),
+        mod_time_(0),
+        read_time_(0),
         logical_time_(0) {}
 
   CteTelemetry(CteOp op, size_t off, size_t size, const TagId &tag_id,
@@ -803,15 +827,7 @@ struct CteTelemetry {
   // Serialization support for cereal
   template <class Archive>
   void serialize(Archive &ar) {
-    // Convert timestamps to duration counts for serialization
-    auto mod_count = mod_time_.time_since_epoch().count();
-    auto read_count = read_time_.time_since_epoch().count();
-    ar(op_, off_, size_, tag_id_, mod_count, read_count, logical_time_);
-    // Note: On deserialization, timestamps will be reconstructed from counts
-    if (Archive::is_loading::value) {
-      mod_time_ = Timestamp(Timestamp::duration(mod_count));
-      read_time_ = Timestamp(Timestamp::duration(read_count));
-    }
+    ar(op_, off_, size_, tag_id_, mod_time_, read_time_, logical_time_);
   }
 };
 
