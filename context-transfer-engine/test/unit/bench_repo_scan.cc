@@ -258,21 +258,26 @@ int main(int argc, char **argv) {
                                : "path + metadata + file content (head+tail 8 KB)")
               << "\n";
 
-    // --- Disk cache: summaries are a function of (model, repo, file set), not
-    //     backend. Reuse across cells to save ~30 min per matrix run.
+    // --- Disk cache: summaries are a function of (model, repo, file set,
+    //     LEVEL), not backend. Reuse across cells to save ~30 min per matrix
+    //     run. Level is part of the key because each level produces a
+    //     different prompt to the LLM (different input richness → different
+    //     summary text), so cache files must be per-level.
     std::string cache_path;
     {
       std::string model = std::getenv("CAE_SUMMARY_MODEL");
       std::vector<std::string> sorted_files = files;
       std::sort(sorted_files.begin(), sorted_files.end());
       size_t h = std::hash<std::string>{}(model) ^
-                 std::hash<std::string>{}(repo_dir);
+                 std::hash<std::string>{}(repo_dir) ^
+                 (std::hash<int>{}(level) << 8);
       for (const auto &p : sorted_files) {
         h ^= std::hash<std::string>{}(p) + 0x9e3779b9 + (h << 6) + (h >> 2);
       }
       char buf[32];
       std::snprintf(buf, sizeof(buf), "%zx", h);
-      cache_path = std::string("/tmp/acropolis_summary_cache_") + buf + ".json";
+      cache_path = std::string("/tmp/acropolis_summary_cache_l") +
+                   std::to_string(level) + "_" + buf + ".json";
     }
     bool loaded_from_cache = false;
     {
@@ -336,15 +341,18 @@ int main(int argc, char **argv) {
           work.pop();
         }
 
-        // 1. Read file content (cap at 4 KB for prompt-size control)
-        std::ifstream f(p, std::ios::binary);
-        if (!f) { ++processed; continue; }
-        std::string buf((std::istreambuf_iterator<char>(f)),
-                        std::istreambuf_iterator<char>());
-        if (buf.empty()) { ++processed; continue; }
-        if (buf.size() > 4096) buf.resize(4096);
-        // Prefix with the filename so the LLM has context
-        std::string desc = "FILE: " + p + "\n\n" + buf;
+        // 1. Build a LEVEL-APPROPRIATE description blob using the same
+        //    helper BinaryFileAssimilator uses in production. The level
+        //    controls input richness for the summarizer:
+        //      L0 path only           (LLM sees just the path)
+        //      L1 path + metadata     (+ size + extension)
+        //      L2 path + content      (+ head 4 KB + tail 4 KB)
+        //    Empty / unreadable files at L2 are skipped (no content blob to
+        //    summarize).
+        auto opt_desc =
+            wrp_cae::core::BuildLevelAwareDescription(p, level);
+        if (!opt_desc.has_value()) { ++processed; continue; }
+        const std::string &desc = *opt_desc;
 
         int last_rc = 99;
         std::string last_err;

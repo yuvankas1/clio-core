@@ -36,13 +36,86 @@
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
+#include <fstream>
+#include <optional>
 #include <string>
+#include <system_error>
 
 #include <wrp_cae/core/factory/assimilation_ctx.h>
 #include <wrp_cte/core/core_client.h>
 #include <chimaera/task.h>
 
 namespace wrp_cae::core {
+
+/**
+ * Acropolis indexing depth — controls how much input the summarizer sees.
+ * The same SummaryOperator runs at every level; only the description blob
+ * it consumes differs. Higher level = richer input = costlier indexing.
+ */
+enum class IndexingLevel : int {
+  kPathOnly        = 0,   ///< L0: just the file path
+  kPathAndMetadata = 1,   ///< L1: path + size + extension
+  kPathAndContent  = 2,   ///< L2: path + metadata + file content
+};
+
+/**
+ * BuildLevelAwareDescription — produce the description-blob text that the
+ * summarizer will receive for a given file at a given Acropolis level.
+ *
+ * Single source of truth shared between BinaryFileAssimilator (production
+ * ingest path via ParseOmni) and bench_repo_scan (paper benchmark driver
+ * that bypasses the assimilator for speed). Both paths emit byte-identical
+ * description blobs so benchmark numbers are valid for the production
+ * pipeline.
+ *
+ *   L0: "FILE: <path>\nBASENAME: <name>"
+ *   L1: above + "\nSIZE: <bytes>\nEXT: <ext>"
+ *   L2: above + "\n\nCONTENT:\n<head 4 KB>\n... [middle truncated] ...\n<tail 4 KB>"
+ *
+ * Head + tail truncation (vs. first-4-KB-only) at L2 ensures middle-of-file
+ * domain terms — e.g. "FlexGen" appearing past line 100 of a 891-line
+ * ggml_iowarp_backend.cc — survive into the summarizer's input.
+ *
+ * Returns std::nullopt iff L2 was requested but the file is empty or
+ * unreadable — caller should skip these tags (no content to summarize).
+ */
+inline std::optional<std::string> BuildLevelAwareDescription(
+    const std::string& path, int level) {
+  size_t slash = path.find_last_of("/\\");
+  std::string basename =
+      (slash == std::string::npos) ? path : path.substr(slash + 1);
+  size_t dot = basename.find_last_of('.');
+  std::string ext = (dot == std::string::npos) ? "" : basename.substr(dot + 1);
+
+  std::string desc = "FILE: " + path + "\nBASENAME: " + basename;
+
+  if (level >= static_cast<int>(IndexingLevel::kPathAndMetadata)) {
+    std::error_code ec;
+    auto sz = std::filesystem::file_size(path, ec);
+    desc += "\nSIZE: " +
+            (ec ? std::string("unknown")
+                : std::to_string(static_cast<uint64_t>(sz)));
+    desc += "\nEXT: " + ext;
+  }
+
+  if (level >= static_cast<int>(IndexingLevel::kPathAndContent)) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return std::nullopt;
+    std::string buf((std::istreambuf_iterator<char>(f)),
+                    std::istreambuf_iterator<char>());
+    if (buf.empty()) return std::nullopt;
+    constexpr size_t kHalf = 4096;
+    if (buf.size() > 2 * kHalf) {
+      std::string head = buf.substr(0, kHalf);
+      std::string tail = buf.substr(buf.size() - kHalf);
+      buf = head + "\n\n... [middle truncated] ...\n\n" + tail;
+    }
+    desc += "\n\nCONTENT:\n" + buf;
+  }
+
+  return desc;
+}
 
 /**
  * CategoryFromPath - Map a file path to a coarse data category, based on

@@ -165,9 +165,26 @@ chi::TaskResume BinaryFileAssimilator::Schedule(const AssimilationCtx& ctx,
     total_size = file_size;
   }
 
-  // Store file metadata as "description" blob
-  std::string description = "binary<size=" + std::to_string(total_size) +
-                            ", offset=" + std::to_string(chunk_offset) + ">";
+  // Build a level-aware description blob via the shared helper, so the
+  // production assimilator and the paper benchmark driver emit
+  // byte-identical descriptions for the same (path, level) pair.
+  //
+  // Level resolution: AssimilationCtx::level if explicitly set (>=0), else
+  // fall back to ACROPOLIS_INDEX_LEVEL env var, else L2 (full content) as
+  // the safe default since downstream depth_controller will down-shift the
+  // indexed KG text for L0/L1 anyway.
+  int level = (ctx.level >= 0) ? ctx.level : 2;
+  if (ctx.level < 0) {
+    if (const char* env_lv = std::getenv("ACROPOLIS_INDEX_LEVEL")) {
+      level = std::max(0, std::min(2, std::atoi(env_lv)));
+    }
+  }
+  auto opt_desc = BuildLevelAwareDescription(src_path, level);
+  // BuildLevelAwareDescription only returns nullopt for L2 with empty /
+  // unreadable file. For L0/L1 it always returns a string. Fall back to a
+  // minimal description so empty L2 files still get a tag entry.
+  std::string description =
+      opt_desc.value_or("FILE: " + src_path + "\nBASENAME: (empty)");
   size_t desc_size = description.size();
   auto desc_buffer = CHI_IPC->AllocateBuffer(desc_size);
   std::memcpy(desc_buffer.ptr_, description.c_str(), desc_size);

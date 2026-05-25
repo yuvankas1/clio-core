@@ -330,6 +330,78 @@ def fig_token_savings(out_path, baseline, acropolis):
     print(f"wrote {out_path}")
 
 
+# ===========================================================================
+# Plot 4 (new) — per-level accuracy across all 5 backends
+# ===========================================================================
+
+def fig_level_accuracy(out_path, per_level):
+    """Accuracy across 5 backends at L0/L1/L2 — clustered bar chart.
+
+    Each backend cluster has 3 bars (one per indexing level). An ORACLE
+    cluster at the right shows per-query best-across-backends at each
+    level. Baseline (Glob/Grep/Read) shown as a horizontal reference line.
+    """
+    hits   = per_level["hits"]        # {level_str: {backend: hits}}
+    oracle = per_level["oracle"]      # {level_str: hits}
+    base   = per_level.get("baseline_score", 17)
+    n      = per_level.get("total_queries", 18)
+
+    backends = per_level["backends"]
+    levels = ["0", "1", "2"]   # JSON keys are strings
+    n_groups = len(backends) + 1   # +1 for ORACLE cluster
+
+    pretty = {
+        "bm25":              "BM25",
+        "qdrant":            "Qdrant",
+        "elasticsearch-kw":  "ES kw",
+        "elasticsearch-vec": "ES vec",
+        "elasticsearch-rrf": "ES RRF",
+    }
+    group_labels = [pretty.get(b, b) for b in backends] + ["ORACLE"]
+    level_color  = {"0": "#cca44a", "1": "#7b9bcc", "2": "#3a9d4a"}
+    level_label  = {"0": "L0 (path only)",
+                    "1": "L1 (+ metadata)",
+                    "2": "L2 (+ content)"}
+
+    x = np.arange(n_groups)
+    width = 0.27
+
+    fig, ax = plt.subplots(figsize=(13, 6))
+    for li, lv in enumerate(levels):
+        values = [hits[lv][b] for b in backends] + [oracle[lv]]
+        offset = (li - 1) * width
+        bars = ax.bar(x + offset, values, width,
+                      label=level_label[lv], color=level_color[lv],
+                      edgecolor="black", linewidth=0.4)
+        for bar, v in zip(bars, values):
+            ax.text(bar.get_x() + bar.get_width()/2, v + 0.2,
+                    f"{v}", ha="center", va="bottom", fontsize=8.5)
+
+    # Baseline reference line
+    ax.axhline(y=base, color="#888888", linestyle="--", linewidth=1.2,
+               label=f"Baseline ({base}/{n}, Glob/Grep/Read)")
+    ax.axhline(y=n, color="gray", linestyle=":", linewidth=0.8,
+               label=f"Perfect ({n}/{n})")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(group_labels, fontsize=10.5)
+    ax.set_ylabel(f"queries solved (top-5, of {n})")
+    ax.set_ylim(0, n + 2.5)
+    ax.set_title(
+        f"Per-level accuracy across {len(backends)} knowledge-graph backends "
+        f"({n} semantic queries, clio-core, 996/1003 files)\n"
+        "Indexing depth = input richness for the LLM summarizer "
+        "(L0=path, L1=+metadata, L2=+content head+tail 8 KB).",
+        fontsize=11)
+    ax.grid(axis="y", linestyle=":", alpha=0.4)
+    ax.legend(loc="lower left", fontsize=9, framealpha=0.95)
+
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=140, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {out_path}")
+
+
 if __name__ == "__main__":
     baseline_path  = os.path.join(HERE, "fresh_results_baseline.json")
     acropolis_path = os.path.join(HERE, "fresh_results_acropolis.json")
@@ -354,3 +426,10 @@ if __name__ == "__main__":
     fig_backend_accuracy( os.path.join(HERE, "fig_backend_accuracy.png"), acropolis)
     fig_token_savings(    os.path.join(HERE, "fig_token_savings.png"),
                           baseline, acropolis)
+
+    per_level_path = os.path.join(HERE, "fresh_results_per_level.json")
+    if os.path.exists(per_level_path):
+        with open(per_level_path) as f:
+            per_level = json.load(f)
+        fig_level_accuracy(
+            os.path.join(HERE, "fig_level_accuracy.png"), per_level)

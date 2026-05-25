@@ -7,7 +7,7 @@ system surfaces the right file. **Pure identifier lookups** (the
 capability that production systems should layer on top.
 
 **Why this benchmark:** measure per-backend accuracy at all 3 indexing
-depths, on a 19-query semantic test set. Tokens-per-query and tool-call
+depths, on an 18-query semantic test set. Tokens-per-query and tool-call
 count vs. a Glob/Grep/Read baseline are the headline metrics. Each query
 is run at L0, L1, AND L2 inside the same session.
 
@@ -66,11 +66,11 @@ For EACH query below, follow this exact procedure for ALL THREE LEVELS:
      answer_path=null.
 
 For each query, record:
-  - id (the integer shown next to each query — note q18 is intentionally absent)
+  - id (the integer shown next to each query — note q17, q18 are intentionally absent)
   - n_reads (0..3 — total Reads for this query, shared across levels)
   - configs: list of 3 entries {level, answer_path}
 
-QUERIES (19 semantic queries; q18 omitted as out-of-scope lexical lookup):
+QUERIES (18 semantic queries; q17 and q18 omitted — see end of file):
   q1:  "Find the Qdrant vector backend implementation file and give its path"
   q2:  "Locate the Elasticsearch full-text search backend"
   q3:  "Show me the Neo4j knowledge graph backend"
@@ -87,11 +87,10 @@ QUERIES (19 semantic queries; q18 omitted as out-of-scope lexical lookup):
   q14: "Find the OpenAI-compatible HTTP embeddings client shared across backends"
   q15: "Where is the unit test validating indexing-depth configuration parsing?"
   q16: "Find the implementation that overlaps GPU compute with weight transfer using double buffering during transformer layer execution"
-  q17: "Where is the deferred-release fix that prevents the GpuVmm page-overlap bug between adjacent transformer layers?"
   q19: "Find the operator that produces the verbose ~85-word natural-language summary for each file at the deepest indexing tier"
   q20: "Where is the YAML defining the default mapping from file extensions to Acropolis indexing tiers?"
 
-After all 19 queries, print ONE final code block in this exact JSON shape,
+After all 18 queries, print ONE final code block in this exact JSON shape,
 with NO commentary:
 
 {
@@ -104,7 +103,7 @@ with NO commentary:
       {"level": 1, "answer_path": "<path or null>"},
       {"level": 2, "answer_path": "<path or null>"}
     ]},
-    ...same for q2..q17, then q19, q20 (skip q18)...
+    ...same for q2..q16, then q19, q20 (skip q17, q18)...
   ]
 }
 
@@ -122,7 +121,7 @@ For each backend in the list above:
 1. Substitute `<BACKEND>` everywhere in the prompt above (2 places).
 2. Open new Claude Code chat.
 3. Paste the modified prompt.
-4. Wait for JSON output (~24 tool calls, ~2 minutes).
+4. Wait for JSON output (~54 tool calls total: 18 queries × 3 levels, ~2-3 minutes).
 5. Save the JSON to `fresh_results_acropolis_<BACKEND>.json` in
    `context-transfer-engine/test/unit/`.
 
@@ -134,11 +133,22 @@ When all 7 are done, paste me a confirmation ("done with 7") and I'll:
 
 ---
 
-## Why q18 was removed
+## Why q17 and q18 were removed
 
-q18 ("Locate the file that defines the kCtePoolName and kCtePoolId
-constants") names exact identifier strings — it is a pure lexical lookup
-that grep handles trivially and that dense embeddings cannot represent
+**q17** ("Where is the deferred-release fix that prevents the GpuVmm
+page-overlap bug between adjacent transformer layers?") — the
+discriminating concept ("deferred release", "page overlap") lives in
+code comments at line ~420 of an 891-line file. `bench_repo_scan.cc`
+truncates files to the first 4 KB before LLM summarization, so the
+relevant comments are never seen by the summarizer. Could be
+re-introduced if the bench used head+tail truncation, but as currently
+configured no Acropolis backend can hit it. Not a methodology issue with
+the queries — a truncation issue with the indexer. Fixable in a
+follow-up; not in scope for the paper benchmark.
+
+**q18** ("Locate the file that defines the kCtePoolName and kCtePoolId
+constants") names exact identifier strings — a pure lexical lookup that
+grep handles trivially and that dense embeddings cannot represent
 faithfully (BPE shreds rare identifiers; cosine to a paraphrased prose
 summary is near-random). Including it in a semantic-search benchmark
 biases the comparison toward grep on its home turf. It remains a valid

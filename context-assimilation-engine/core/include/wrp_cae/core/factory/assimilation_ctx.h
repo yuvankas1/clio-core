@@ -59,6 +59,14 @@ struct AssimilationCtx {
   std::vector<std::string> include_patterns;  // Glob patterns for datasets to include
   std::vector<std::string> exclude_patterns;  // Glob patterns for datasets to exclude
 
+  // Acropolis indexing depth (-1 = unset; assimilators fall back to
+  // ACROPOLIS_INDEX_LEVEL env or a per-format default). Determines the
+  // input richness the assimilator gives the downstream summarizer:
+  //   0 = path only
+  //   1 = path + filesystem metadata (size, ext)
+  //   2 = path + metadata + file content (head+tail 8 KB)
+  int level = -1;
+
   // Default constructor
   AssimilationCtx()
       : range_off(0), range_size(0) {}
@@ -85,7 +93,7 @@ struct AssimilationCtx {
   template<class Archive>
   void serialize(Archive& ar) {
     ar(src, dst, format, depends_on, range_off, range_size, src_token, dst_token,
-       include_patterns, exclude_patterns);
+       include_patterns, exclude_patterns, level);
   }
 };
 
