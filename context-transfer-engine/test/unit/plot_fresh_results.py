@@ -101,69 +101,103 @@ INDEXING = {
 # ===========================================================================
 
 def fig_overhead(out_path):
-    """One-time auto-indexing cost per file, broken down by phase and
-    clustered by search-engine backend.
+    """One-time auto-indexing cost per file, as a single doughnut chart.
 
-    Phases:
+    Three phases compose the total per-file ingest cost:
       - Metadata extraction (file stat + path parsing + format detection)
-      - Summarization (LLM call to qwen2.5:7b, 4 parallel workers, GPU)
+      - LLM summarization (qwen2.5:7b, 4 parallel workers, GPU)
       - Search-engine indexing (embedding + HTTP insert into the backend)
 
-    Summarization is shared across backends via the on-disk summary cache,
-    so it appears identical for both Qdrant and ES clusters. The two
-    differ only in the search-engine indexing phase.
+    We draw a single doughnut for Elasticsearch (the slower of the two
+    backends evaluated, and the one whose indexing slice is visible).
+    Qdrant's indexing slice would shrink to ~0.4 ms (~0.02%); the
+    metadata and summarization wedges are unchanged across backends.
+    The Qdrant comparison is reported in the caption.
     """
-    summary_per_file = INDEXING["summary_generation_s"] / INDEXING["n_files_summarized"]
-    qdrant_per_file  = INDEXING["qdrant_ingest_s"] / INDEXING["n_files"]
-    es_per_file      = INDEXING["es_ingest_s"]    / INDEXING["n_files"]
-    # Metadata extraction isn't separately timed in the bench logs.
-    # Conservative estimate: ~10 ms/file for stat + path/ext/format parsing.
-    # The 1003-file walk completed in well under a second of pure I/O work.
-    metadata_per_file = 0.010
+    summary_per_file  = INDEXING["summary_generation_s"] / INDEXING["n_files_summarized"]
+    es_per_file       = INDEXING["es_ingest_s"]    / INDEXING["n_files"]
+    qdrant_per_file   = INDEXING["qdrant_ingest_s"] / INDEXING["n_files"]
+    metadata_per_file = 0.010   # conservative ~10 ms/file stat + parse
 
-    phases = ["Metadata\nextraction",
-              "Summarization\n(LLM, qwen2.5:7b)",
-              "Search-engine\nindexing"]
-    qdrant_costs = [metadata_per_file, summary_per_file, qdrant_per_file]
-    es_costs     = [metadata_per_file, summary_per_file, es_per_file]
+    phase_colors = {
+        "metadata":  "#9aaab8",   # cool grey
+        "summary":   "#cc6633",   # warm rust (dominant)
+        "indexing":  "#3a8a5a",   # green
+    }
+    phase_labels = ["Metadata extraction",
+                    "LLM summarization",
+                    "Search-engine indexing"]
+    phase_keys   = ["metadata", "summary", "indexing"]
 
-    x = np.arange(len(phases))
-    width = 0.35
-
-    fig, ax = plt.subplots(figsize=(11, 6))
-    b1 = ax.bar(x - width/2, qdrant_costs, width, label="Qdrant",
-                color="#4477aa", edgecolor="black", linewidth=0.5)
-    b2 = ax.bar(x + width/2, es_costs, width, label="Elasticsearch",
-                color="#cc8844", edgecolor="black", linewidth=0.5)
-
-    def lbl(v):
+    def fmt(v):
         if v >= 1.0:
             return f"{v:.2f} s"
-        return f"{v*1000:.0f} ms"
+        if v >= 0.001:
+            return f"{v*1000:.0f} ms"
+        return f"{v*1000:.1f} ms"
 
-    ymax = max(max(qdrant_costs), max(es_costs))
-    for bars, costs in ((b1, qdrant_costs), (b2, es_costs)):
-        for b, v in zip(bars, costs):
-            ax.text(b.get_x() + b.get_width()/2, v + ymax * 0.015,
-                    lbl(v), ha="center", va="bottom", fontsize=10)
+    data      = [metadata_per_file, summary_per_file, es_per_file]
+    total     = sum(data)
+    fractions = [d / total for d in data]
+    colors    = [phase_colors[k] for k in phase_keys]
 
-    ax.set_xticks(x)
-    ax.set_xticklabels(phases, fontsize=10.5)
-    ax.set_ylabel("seconds per file")
-    ax.set_title(
+    fig, ax = plt.subplots(figsize=(8.5, 6.2))
+    fig.suptitle(
         f"Auto-indexing overhead per file "
         f"({INDEXING['n_files']} files, RTX 5060 Laptop, 4 LLM workers)\n"
-        f"Summarization dominates by ~3 orders of magnitude; "
-        f"metadata extraction is negligible; "
-        f"search-engine cost depends on backend.",
-        fontsize=11)
-    ax.legend(loc="upper right", fontsize=10)
-    ax.grid(axis="y", linestyle=":", alpha=0.4)
+        f"LLM summarization dominates total cost by $\\sim$3 orders of magnitude; "
+        f"backend choice affects only the indexing slice.",
+        fontsize=10.5, y=0.98)
 
-    fig.tight_layout()
+    wedges, _ = ax.pie(
+        data,
+        colors=colors,
+        startangle=90,
+        counterclock=False,
+        wedgeprops=dict(width=0.42, edgecolor="white", linewidth=2.2),
+    )
+
+    # Center label: backend + total per-file cost.
+    ax.text(0, 0.18, "Elasticsearch",
+            ha="center", va="center", fontsize=14, fontweight="bold")
+    ax.text(0, -0.02, fmt(total),
+            ha="center", va="center", fontsize=13, color="#333")
+    ax.text(0, -0.20, "per file",
+            ha="center", va="center", fontsize=10, color="#666")
+
+    # Leader-line annotations for each wedge, placed outside the ring.
+    for i, w in enumerate(wedges):
+        ang = (w.theta2 + w.theta1) / 2.0
+        x = np.cos(np.deg2rad(ang))
+        y = np.sin(np.deg2rad(ang))
+
+        label = f"{phase_labels[i]}\n{fmt(data[i])} ({fractions[i]*100:.2f}%)"
+        ha = "left" if x >= 0 else "right"
+        x_text = 1.35 * np.sign(x) if x != 0 else 1.35
+        ax.annotate(
+            label,
+            xy=(x, y), xytext=(x_text, 1.10 * y),
+            ha=ha, va="center", fontsize=10.5,
+            arrowprops=dict(arrowstyle="-", color="#555", lw=0.7,
+                            connectionstyle="arc3,rad=0"),
+        )
+
+    ax.set_xlim(-1.95, 1.95)
+    ax.set_ylim(-1.45, 1.45)
+
+    # Bottom legend
+    legend_handles = [
+        plt.Rectangle((0, 0), 1, 1, color=phase_colors[k]) for k in phase_keys
+    ]
+    fig.legend(legend_handles, phase_labels,
+               loc="lower center", ncol=3, fontsize=10, frameon=False,
+               bbox_to_anchor=(0.5, 0.02))
+
+    fig.tight_layout(rect=[0, 0.06, 1, 0.92])
     fig.savefig(out_path, dpi=140, bbox_inches="tight")
     plt.close(fig)
-    print(f"wrote {out_path}")
+    print(f"wrote {out_path} (Qdrant indexing slice would be "
+          f"{fmt(qdrant_per_file)}, ~0.02%; metadata + summary unchanged)")
 
 
 # ===========================================================================
@@ -337,18 +371,16 @@ def fig_token_savings(out_path, baseline, acropolis):
 def fig_level_accuracy(out_path, per_level):
     """Accuracy across 5 backends at L0/L1/L2 — clustered bar chart.
 
-    Each backend cluster has 3 bars (one per indexing level). An ORACLE
-    cluster at the right shows per-query best-across-backends at each
-    level. Baseline (Glob/Grep/Read) shown as a horizontal reference line.
+    Each backend cluster has 3 bars (one per indexing level). Baseline
+    (Glob/Grep/Read) shown as a horizontal reference line.
     """
     hits   = per_level["hits"]        # {level_str: {backend: hits}}
-    oracle = per_level["oracle"]      # {level_str: hits}
     base   = per_level.get("baseline_score", 17)
     n      = per_level.get("total_queries", 18)
 
     backends = per_level["backends"]
     levels = ["0", "1", "2"]   # JSON keys are strings
-    n_groups = len(backends) + 1   # +1 for ORACLE cluster
+    n_groups = len(backends)
 
     pretty = {
         "bm25":              "BM25",
@@ -357,7 +389,7 @@ def fig_level_accuracy(out_path, per_level):
         "elasticsearch-vec": "ES vec",
         "elasticsearch-rrf": "ES RRF",
     }
-    group_labels = [pretty.get(b, b) for b in backends] + ["ORACLE"]
+    group_labels = [pretty.get(b, b) for b in backends]
     level_color  = {"0": "#cca44a", "1": "#7b9bcc", "2": "#3a9d4a"}
     level_label  = {"0": "L0 (path only)",
                     "1": "L1 (+ metadata)",
@@ -366,9 +398,9 @@ def fig_level_accuracy(out_path, per_level):
     x = np.arange(n_groups)
     width = 0.27
 
-    fig, ax = plt.subplots(figsize=(13, 6))
+    fig, ax = plt.subplots(figsize=(11, 6))
     for li, lv in enumerate(levels):
-        values = [hits[lv][b] for b in backends] + [oracle[lv]]
+        values = [hits[lv][b] for b in backends]
         offset = (li - 1) * width
         bars = ax.bar(x + offset, values, width,
                       label=level_label[lv], color=level_color[lv],
@@ -389,7 +421,7 @@ def fig_level_accuracy(out_path, per_level):
     ax.set_ylim(0, n + 2.5)
     ax.set_title(
         f"Per-level accuracy across {len(backends)} knowledge-graph backends "
-        f"({n} semantic queries, clio-core, 996/1003 files)\n"
+        f"({n} semantic queries, 996/1003 files)\n"
         "Indexing depth = input richness for the LLM summarizer "
         "(L0=path, L1=+metadata, L2=+content head+tail 8 KB).",
         fontsize=11)
@@ -397,6 +429,92 @@ def fig_level_accuracy(out_path, per_level):
     ax.legend(loc="lower left", fontsize=9, framealpha=0.95)
 
     fig.tight_layout()
+    fig.savefig(out_path, dpi=140, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {out_path}")
+
+
+# ===========================================================================
+# Plot 5 — Three-system comparison (baseline / Acropolis ES RRF / Chroma)
+# ===========================================================================
+
+def fig_token_3way(out_path, acropolis):
+    """Three-system three-panel comparison for §V.D of the paper.
+
+    Systems: shell-tool baseline, Acropolis with its strongest single
+    backend (Elasticsearch RRF), and Chroma context-1 (released
+    gpt-oss-20b fine-tune plus retrieval harness).
+
+    Panels: accuracy / total tool calls / estimated response-payload tokens.
+
+    Acropolis uses ES RRF as a single, deployable backend (16/18).
+    No cross-backend routing or ORACLE union is involved.
+    """
+    n = acropolis["total_queries"]
+
+    # Acropolis = strongest single backend (ES RRF), not ORACLE.
+    acro_score = acropolis["per_backend_total"]["elasticsearch-rrf"]
+    acro_calls = n                                # 1 MCP call per query
+    base_score = acropolis["baseline_score"]
+    base_calls = acropolis["baseline_tool_calls"]
+
+    # Chroma context-1 numbers (validated externally; see paper §V.D).
+    chroma_score = 15                              # lenient (raw 14)
+    chroma_calls = 36
+
+    EST_TOKENS_PER_CALL = {
+        "baseline":  730,    # 60% Glob/Grep (~550) + 40% Read (~1000)
+        "acropolis": 900,    # 5 hits w/ summaries
+        "chroma":    750,    # Chroma context-1 response shape
+    }
+    base_tok   = base_calls   * EST_TOKENS_PER_CALL["baseline"]
+    acro_tok   = acro_calls   * EST_TOKENS_PER_CALL["acropolis"]
+    chroma_tok = chroma_calls * EST_TOKENS_PER_CALL["chroma"]
+
+    labels = ["Baseline", "Acropolis\n(ES RRF)", "Chroma\ncontext-1"]
+    colors = ["#888888", "#2a8a3a", "#7a4a9c"]
+
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.6))
+    fig.suptitle(
+        f"Three-system comparison on the {n}-query semantic benchmark",
+        fontsize=12)
+
+    # Panel A — Accuracy
+    accs = [base_score, acro_score, chroma_score]
+    bars = axes[0].bar(labels, accs, color=colors,
+                       edgecolor="black", linewidth=0.5)
+    for b, v in zip(bars, accs):
+        axes[0].text(b.get_x() + b.get_width()/2, v + 0.15,
+                     f"{v}/{n}", ha="center", va="bottom", fontsize=11)
+    axes[0].axhline(y=n, color="gray", linestyle="--", linewidth=0.8)
+    axes[0].set_ylabel(f"queries solved (of {n})")
+    axes[0].set_ylim(0, n + 2)
+    axes[0].set_title("Accuracy")
+    axes[0].grid(axis="y", linestyle=":", alpha=0.4)
+
+    # Panel B — Total tool calls
+    calls = [base_calls, acro_calls, chroma_calls]
+    bars2 = axes[1].bar(labels, calls, color=colors,
+                        edgecolor="black", linewidth=0.5)
+    for b, v in zip(bars2, calls):
+        axes[1].text(b.get_x() + b.get_width()/2, v + max(calls)*0.015,
+                     str(v), ha="center", va="bottom", fontsize=11)
+    axes[1].set_ylabel("total tool calls")
+    axes[1].set_title("Tool-call cost")
+    axes[1].grid(axis="y", linestyle=":", alpha=0.4)
+
+    # Panel C — Estimated response-payload tokens
+    toks = [base_tok, acro_tok, chroma_tok]
+    bars3 = axes[2].bar(labels, toks, color=colors,
+                        edgecolor="black", linewidth=0.5)
+    for b, v in zip(bars3, toks):
+        axes[2].text(b.get_x() + b.get_width()/2, v + max(toks)*0.015,
+                     f"{v/1000:.1f}K", ha="center", va="bottom", fontsize=11)
+    axes[2].set_ylabel("tool-call response tokens")
+    axes[2].set_title("Tool-call response tokens (estimate)")
+    axes[2].grid(axis="y", linestyle=":", alpha=0.4)
+
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
     fig.savefig(out_path, dpi=140, bbox_inches="tight")
     plt.close(fig)
     print(f"wrote {out_path}")
@@ -426,6 +544,7 @@ if __name__ == "__main__":
     fig_backend_accuracy( os.path.join(HERE, "fig_backend_accuracy.png"), acropolis)
     fig_token_savings(    os.path.join(HERE, "fig_token_savings.png"),
                           baseline, acropolis)
+    fig_token_3way(       os.path.join(HERE, "fig_token_3way.png"), acropolis)
 
     per_level_path = os.path.join(HERE, "fresh_results_per_level.json")
     if os.path.exists(per_level_path):
