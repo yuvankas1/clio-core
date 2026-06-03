@@ -5,6 +5,10 @@ out/
 # GitNexus local index (large binary blobs, regenerable via `npx gitnexus analyze`)
 .gitnexus/
 
+# Chroma / context-1 vector store (binary HNSW + sqlite blobs, ~76 MB,
+# regenerable by re-running chroma_context1_bench.py)
+context-transfer-engine/test/unit/.chroma_context1_store/
+
 # Acropolis bench scratch directories (RAM bdev configs created per
 # bench_repo_scan invocation, e.g. bench_ram_<level>_<backend>)
 bench_ram_*

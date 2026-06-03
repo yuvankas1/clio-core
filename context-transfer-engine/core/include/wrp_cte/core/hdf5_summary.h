@@ -63,8 +63,11 @@ class Hdf5Summary {
   };
 
   // H5O visit callback — called once per object (group, dataset, datatype)
+  // Use H5O_info1_t explicitly so H5Ovisit2's H5O_iterate1_t signature
+  // matches across HDF5 versions where `H5O_info_t` defaults to the new
+  // H5O_info2_t typedef (HDF5 2.0+ on conda).
   static herr_t OnObject(hid_t obj_id, const char *name,
-                         const H5O_info_t *info, void *op_data) {
+                         const H5O_info1_t *info, void *op_data) {
     auto *ctx = static_cast<Ctx *>(op_data);
     auto &oss = *ctx->oss;
     std::string clean_name = (name && *name) ? name : "/";

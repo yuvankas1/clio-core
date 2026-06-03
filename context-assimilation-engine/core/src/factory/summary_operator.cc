@@ -291,7 +291,16 @@ std::string SummaryOperator::CallLlm(const std::string& description) const {
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
-  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 60L);
+  // Default 60s curl timeout was fine for fast small models (qwen2.5:7b,
+  // qwen2.5-coder:14b) but llama3.1:8b and llama3.3:70b need more headroom
+  // when max_tokens=800 + 8 KB context blob. Env knob keeps the patch
+  // minimal; sweep sets a generous value.
+  long curl_timeout = 60L;
+  if (const char *t = std::getenv("CAE_SUMMARY_TIMEOUT")) {
+    long v = std::atol(t);
+    if (v > 0 && v <= 3600) curl_timeout = v;
+  }
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, curl_timeout);
 
   CURLcode res = curl_easy_perform(curl);
 

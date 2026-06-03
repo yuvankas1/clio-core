@@ -338,11 +338,15 @@ chi::TaskResume Runtime::Create(hipc::FullPtr<CreateTask> task,
     depth_controller_.SetEmbedder(std::move(ec));
 
 #ifdef WRP_CORE_ENABLE_HDF5
-    // Register HDF5 L2 extractor so any H5 file gets full group/dataset
-    // metadata indexed, regardless of whether CAE drives the ingest.
+    // Register HDF5 L2 extractor so any HDF5-family file gets full
+    // group/dataset metadata indexed, regardless of whether CAE drives
+    // the ingest. NetCDF4 (.nc, .nc4) is HDF5-based; same extractor works.
     depth_controller_.RegisterMetadataExtractor("h5",   &Hdf5Summary::Extract);
     depth_controller_.RegisterMetadataExtractor("hdf5", &Hdf5Summary::Extract);
-    HLOG(kInfo, "Acropolis L1: HDF5 metadata extractor registered for .h5/.hdf5");
+    depth_controller_.RegisterMetadataExtractor("nc",   &Hdf5Summary::Extract);
+    depth_controller_.RegisterMetadataExtractor("nc4",  &Hdf5Summary::Extract);
+    HLOG(kInfo, "Acropolis L1: HDF5 metadata extractor registered for "
+                ".h5/.hdf5/.nc/.nc4");
 #endif
 
     HLOG(kInfo,
