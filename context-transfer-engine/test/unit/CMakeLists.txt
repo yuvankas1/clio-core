@@ -111,11 +111,27 @@ if(WRP_CORE_ENABLE_CAE)
     target_compile_definitions(bench_repo_scan PRIVATE
         ACROPOLIS_BENCH_USE_SUMMARY
         WRP_CAE_ENABLE_SUMMARY_OP)
+    # When HDF5 is available, link it into the bench so it can call
+    # Hdf5Summary::Extract on .nc/.h5 files at L2 (the production
+    # depth_controller path is bypassed here, so the bench needs its
+    # own access to the extractor).
+    if(WRP_CORE_ENABLE_HDF5)
+      find_package(HDF5 QUIET COMPONENTS C)
+      if(HDF5_FOUND)
+        target_compile_definitions(bench_repo_scan PRIVATE WRP_CORE_ENABLE_HDF5)
+        target_include_directories(bench_repo_scan PRIVATE ${HDF5_INCLUDE_DIRS})
+        target_link_libraries(bench_repo_scan ${HDF5_C_LIBRARIES})
+      endif()
+    endif()
     # SummaryOperator uses libcurl via its own #include in summary_operator.cc
     if(EXISTS "/usr/lib/x86_64-linux-gnu/libcurl.so.4")
         target_link_libraries(bench_repo_scan
             "/usr/lib/x86_64-linux-gnu/libcurl.so.4")
-    elseif(TARGET CURL::libcurl)
+    else()
+        # Need an explicit find_package here because the bench is in test/unit
+        # which doesn't inherit the parent's CURL target. On aarch64 (no
+        # /usr/lib/x86_64-linux-gnu/), this branch is the active one.
+        find_package(CURL REQUIRED)
         target_link_libraries(bench_repo_scan CURL::libcurl)
     endif()
 endif()

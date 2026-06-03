@@ -21,6 +21,9 @@
 #include <wrp_cte/core/core_runtime.h>
 #include <wrp_cte/core/core_tasks.h>
 #include <wrp_cte/core/content_transfer_engine.h>
+#ifdef WRP_CORE_ENABLE_HDF5
+#include <wrp_cte/core/hdf5_summary.h>
+#endif
 
 #ifdef ACROPOLIS_BENCH_USE_SUMMARY
 #include <wrp_cae/core/factory/summary_operator.h>
@@ -56,13 +59,16 @@ using namespace wrp_cte::core;
 namespace {
 
 bool IsTextFile(const fs::path &p) {
-  static const std::unordered_set<std::string> kTextExt = {
+  static const std::unordered_set<std::string> kIndexedExt = {
+      // source code + config
       ".cc", ".cpp", ".cxx", ".c",  ".h",   ".hpp", ".py", ".md",
       ".txt", ".yaml", ".yml", ".json", ".sh", ".cmake",
+      // scientific data (HDF5-family) — indexed via Hdf5Summary L1 extractor
+      ".h5", ".hdf5", ".nc", ".nc4",
   };
   std::string ext = p.extension().string();
   for (auto &c : ext) c = std::tolower(static_cast<unsigned char>(c));
-  if (kTextExt.count(ext)) return true;
+  if (kIndexedExt.count(ext)) return true;
   // Files named CMakeLists.txt have ext=".txt"; others without ext are skipped
   return false;
 }
@@ -274,6 +280,17 @@ int main(int argc, char **argv) {
       for (const auto &p : sorted_files) {
         h ^= std::hash<std::string>{}(p) + 0x9e3779b9 + (h << 6) + (h >> 2);
       }
+      // Summaries are also a function of the system prompt + max_tokens.
+      // Without this, a length-sweep (N=4 vs N=8 vs ...) would reuse the
+      // first arm's cache for all subsequent arms.
+      if (const char *sp = std::getenv("CAE_SUMMARY_SYSTEM_PROMPT")) {
+        h ^= std::hash<std::string>{}(std::string(sp)) + 0x9e3779b9 +
+             (h << 6) + (h >> 2);
+      }
+      if (const char *mt = std::getenv("CAE_SUMMARY_MAX_TOKENS")) {
+        h ^= std::hash<std::string>{}(std::string(mt)) + 0x9e3779b9 +
+             (h << 6) + (h >> 2);
+      }
       char buf[32];
       std::snprintf(buf, sizeof(buf), "%zx", h);
       cache_path = std::string("/tmp/acropolis_summary_cache_l") +
@@ -352,7 +369,32 @@ int main(int argc, char **argv) {
         auto opt_desc =
             wrp_cae::core::BuildLevelAwareDescription(p, level);
         if (!opt_desc.has_value()) { ++processed; continue; }
-        const std::string &desc = *opt_desc;
+        std::string desc = *opt_desc;
+
+#ifdef WRP_CORE_ENABLE_HDF5
+        // For HDF5-family scientific files at L2, replace the raw-bytes
+        // CONTENT block with the structured Hdf5Summary text
+        // (content_kind=hdf5_scientific group=... dataset=... shape=... attr=...).
+        // BuildLevelAwareDescription is byte-oriented and cannot dispatch on
+        // file format, so the binary HDF5 bytes would otherwise be sent to
+        // the summarizer as gibberish.
+        if (level == 2) {
+          std::string ext = fs::path(p).extension().string();
+          for (auto &c : ext) c = std::tolower(static_cast<unsigned char>(c));
+          if (ext == ".h5" || ext == ".hdf5" || ext == ".nc" || ext == ".nc4") {
+            std::string h5 = wrp_cte::core::Hdf5Summary::Extract(p);
+            if (!h5.empty()) {
+              auto pos = desc.find("\n\nCONTENT:\n");
+              if (pos != std::string::npos) {
+                desc = desc.substr(0, pos) + "\n\nCONTENT:\n" + h5;
+              } else {
+                desc += "\n\nCONTENT:\n" + h5;
+              }
+            }
+          }
+        }
+#endif
+
 
         int last_rc = 99;
         std::string last_err;

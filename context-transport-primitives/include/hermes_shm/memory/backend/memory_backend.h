@@ -162,7 +162,12 @@ class UrlMemoryBackend {};
  * Global constant for backend header sizes
  * Each header (shared and private) is 4KB
  */
-static constexpr size_t kBackendHeaderSize = 4 * 1024;  // 4KB per header (shared + private = 8KB total)
+// Was 4KB; bumped to 64KB so MAP_FIXED works on aarch64 kernels with 64KB
+// base pages (e.g. NCSA DeltaAI / SLES on Grace-Hopper). mmap requires
+// offsets + sizes to be page-aligned; 4KB-aligned offsets fail with EINVAL
+// on a 64KB-page system. 64KB is the largest standard base page size in use,
+// so this value works on both 4KB and 64KB-page kernels.
+static constexpr size_t kBackendHeaderSize = 64 * 1024;
 
 class MemoryBackend : public MemoryBackendHeader {
  public:

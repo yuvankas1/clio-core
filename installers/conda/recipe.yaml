@@ -36,7 +36,11 @@ build:
       CMAKE_FIND_ROOT_PATH_MODE_INCLUDE: ONLY
       CMAKE_FIND_ROOT_PATH_MODE_PACKAGE: ONLY
     content:
-      - cmake --preset=${{ preset }} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_FIND_ROOT_PATH=${PREFIX} -DWRP_CORE_ENABLE_CONDA=ON
+      # cpp-httplib is a single-header C++ HTTP client used by embedding_client.h
+      # and the KG backends. It is not packaged on conda-forge, so vendor the
+      # header into the prefix's include path.
+      - curl -fsSL -o ${PREFIX}/include/httplib.h https://raw.githubusercontent.com/yhirose/cpp-httplib/v0.18.5/httplib.h
+      - cmake --preset=${{ preset }} -DCMAKE_INSTALL_PREFIX=${PREFIX} -DCMAKE_PREFIX_PATH=${PREFIX} -DCMAKE_FIND_ROOT_PATH=${PREFIX} -DWRP_CORE_ENABLE_CONDA=ON -DWRP_CTE_ENABLE_KNOWLEDGE_GRAPH=ON -DWRP_CORE_ENABLE_PYTHON=OFF -DWRP_CORE_ENABLE_HDF5=OFF
       - cmake --build build --parallel
       - cmake --install build
 
@@ -56,6 +60,8 @@ requirements:
     - catch2
     - libaio
     - liburing
+    - nlohmann_json
+    - libcurl
   run:
     - python
     - zeromq
@@ -66,6 +72,8 @@ requirements:
     - catch2
     - libaio
     - liburing
+    - nlohmann_json
+    - libcurl
     - pyyaml
     - msgpack-python
     - flask

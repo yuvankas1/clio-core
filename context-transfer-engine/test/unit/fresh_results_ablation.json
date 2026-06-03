@@ -1,0 +1,310 @@
+{
+  "cells": [
+    {
+      "cell_id": "llama3.2-3b_n10",
+      "model": "llama3.2:3b",
+      "n_sentences": 10,
+      "n_files_summarized": 1002,
+      "summary_total_bytes": 1341481,
+      "summary_mean_bytes": 1338,
+      "summary_total_words": 189603,
+      "summary_mean_words": 189,
+      "summarization_total_s": 0.010724544525146484,
+      "summarization_per_file_s": 1.0703138248649186e-05,
+      "embedding_total_s": 15.724984407424927,
+      "per_backend": {
+        "bm25": {
+          "hits": 9,
+          "n": 18,
+          "per_query": [
+            {
+              "id": 1,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_qdrant.h",
+              "hit": true
+            },
+            {
+              "id": 2,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_elasticsearch.h",
+              "hit": true
+            },
+            {
+              "id": 3,
+              "answer_path": "context-assimilation-engine/test/unit/hdf5_assim/test_kg_backends.cc",
+              "hit": false
+            },
+            {
+              "id": 4,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/hdf5_summary.h",
+              "hit": true
+            },
+            {
+              "id": 5,
+              "answer_path": "tools/acropolis_depth/CMakeLists.txt",
+              "hit": false
+            },
+            {
+              "id": 6,
+              "answer_path": "context-runtime/modules/MOD_NAME/test/test_gpu_submission_cpu.cc",
+              "hit": false
+            },
+            {
+              "id": 7,
+              "answer_path": "iowarp-llm/weights/include/wrp_llm/weights/ggml_iowarp_backend.h",
+              "hit": true
+            },
+            {
+              "id": 8,
+              "answer_path": "run_e2e_gpu_fixed.sh",
+              "hit": false
+            },
+            {
+              "id": 9,
+              "answer_path": "run_e2e_gpu_test.sh",
+              "hit": true
+            },
+            {
+              "id": 10,
+              "answer_path": "context-assimilation-engine/test/unit/summary_op/bench_cte_memory.cc",
+              "hit": false
+            },
+            {
+              "id": 11,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_bm25.h",
+              "hit": true
+            },
+            {
+              "id": 12,
+              "answer_path": "context-exploration-engine/api/test/test_context_retrieve_roundtrip.py",
+              "hit": false
+            },
+            {
+              "id": 13,
+              "answer_path": "context-transfer-engine/test/unit/test_depth_runtime_e2e.cc",
+              "hit": false
+            },
+            {
+              "id": 14,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/embedding_client.h",
+              "hit": true
+            },
+            {
+              "id": 15,
+              "answer_path": "context-transfer-engine/test/unit/test_indexing_depth_config.cc",
+              "hit": true
+            },
+            {
+              "id": 16,
+              "answer_path": "iowarp-llm/weights/src/weight_manager.cc",
+              "hit": false
+            },
+            {
+              "id": 19,
+              "answer_path": "config/indexing_depth_defaults.yaml",
+              "hit": false
+            },
+            {
+              "id": 20,
+              "answer_path": "config/indexing_depth_defaults.yaml",
+              "hit": true
+            }
+          ],
+          "total_s": 0.0989220142364502
+        },
+        "qdrant": {
+          "hits": 5,
+          "n": 18,
+          "per_query": [
+            {
+              "id": 1,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_neo4j.h",
+              "hit": false
+            },
+            {
+              "id": 2,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_elasticsearch.h",
+              "hit": true
+            },
+            {
+              "id": 3,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend.h",
+              "hit": false
+            },
+            {
+              "id": 4,
+              "answer_path": "context-transfer-engine/adapter/filesystem/filesystem.cc",
+              "hit": false
+            },
+            {
+              "id": 5,
+              "answer_path": "config/indexing_depth_defaults.yaml",
+              "hit": false
+            },
+            {
+              "id": 6,
+              "answer_path": "context-assimilation-engine/test/unit/CMakeLists.txt",
+              "hit": false
+            },
+            {
+              "id": 7,
+              "answer_path": "context-runtime/test/unit/test_streaming.cc",
+              "hit": false
+            },
+            {
+              "id": 8,
+              "answer_path": "iowarp-llm/kvcache/src/kvcache_manager.cc",
+              "hit": true
+            },
+            {
+              "id": 9,
+              "answer_path": "run_e2e_kvcache_test.sh",
+              "hit": false
+            },
+            {
+              "id": 10,
+              "answer_path": "jarvis_iowarp/jarvis_iowarp/wrp_benchmark/pkg.py",
+              "hit": false
+            },
+            {
+              "id": 11,
+              "answer_path": "bench_distributed_compose.yaml",
+              "hit": false
+            },
+            {
+              "id": 12,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_bm25.h",
+              "hit": false
+            },
+            {
+              "id": 13,
+              "answer_path": "tools/acropolis_depth/CMakeLists.txt",
+              "hit": false
+            },
+            {
+              "id": 14,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/embedding_client.h",
+              "hit": true
+            },
+            {
+              "id": 15,
+              "answer_path": "context-transfer-engine/test/unit/test_indexing_depth_config.cc",
+              "hit": true
+            },
+            {
+              "id": 16,
+              "answer_path": "context-transfer-engine/README.md",
+              "hit": false
+            },
+            {
+              "id": 19,
+              "answer_path": "context-transfer-engine/test/unit/prompts/search_optimized_summary_v2.txt",
+              "hit": false
+            },
+            {
+              "id": 20,
+              "answer_path": "config/indexing_depth_defaults.yaml",
+              "hit": true
+            }
+          ],
+          "total_s": 9.761617183685303
+        },
+        "elasticsearch-rrf": {
+          "hits": 8,
+          "n": 18,
+          "per_query": [
+            {
+              "id": 1,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_qdrant.h",
+              "hit": true
+            },
+            {
+              "id": 2,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend_elasticsearch.h",
+              "hit": true
+            },
+            {
+              "id": 3,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/kg_backend.h",
+              "hit": false
+            },
+            {
+              "id": 4,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/hdf5_summary.h",
+              "hit": true
+            },
+            {
+              "id": 5,
+              "answer_path": "context-transfer-engine/test/unit/test_indexing_depth_config.cc",
+              "hit": false
+            },
+            {
+              "id": 6,
+              "answer_path": "context-runtime/modules/MOD_NAME/test/test_gpu_submission_cpu.cc",
+              "hit": false
+            },
+            {
+              "id": 7,
+              "answer_path": "context-runtime/modules/MOD_NAME/test/test_streaming.cc",
+              "hit": false
+            },
+            {
+              "id": 8,
+              "answer_path": "iowarp-llm/kvcache/include/wrp_llm/kvcache/kvcache_manager.h",
+              "hit": true
+            },
+            {
+              "id": 9,
+              "answer_path": "run_e2e_gpu_test.sh",
+              "hit": true
+            },
+            {
+              "id": 10,
+              "answer_path": "context-assimilation-engine/test/unit/summary_op/bench_cte_memory.cc",
+              "hit": false
+            },
+            {
+              "id": 11,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/core_tasks.h",
+              "hit": false
+            },
+            {
+              "id": 12,
+              "answer_path": "context-exploration-engine/api/test/test_context_retrieve_roundtrip.py",
+              "hit": false
+            },
+            {
+              "id": 13,
+              "answer_path": "context-transfer-engine/test/unit/test_depth_controller.cc",
+              "hit": false
+            },
+            {
+              "id": 14,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/embedding_client.h",
+              "hit": true
+            },
+            {
+              "id": 15,
+              "answer_path": "context-transfer-engine/test/unit/test_indexing_depth_config.cc",
+              "hit": true
+            },
+            {
+              "id": 16,
+              "answer_path": "context-transport-primitives/include/hermes_shm/lightbeam/shm_transport.h",
+              "hit": false
+            },
+            {
+              "id": 19,
+              "answer_path": "context-transfer-engine/core/include/wrp_cte/core/depth_controller.h",
+              "hit": false
+            },
+            {
+              "id": 20,
+              "answer_path": "config/indexing_depth_defaults.yaml",
+              "hit": true
+            }
+          ],
+          "total_s": 0.7351253032684326
+        }
+      }
+    }
+  ]
+}
