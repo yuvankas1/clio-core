@@ -118,34 +118,6 @@ public:
   //===========================================================================
 
   /**
-   * Serialize task parameters for network transfer (auto-generated)
-   * @param method The method ID
-   * @param archive SaveTaskArchive for serialization
-   * @param task_ptr The task to serialize
-   */
-  void SaveTask(chi::u32 method, chi::SaveTaskArchive& archive,
-                ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-
-  /**
-   * Deserialize task parameters from network transfer (auto-generated)
-   * @param method The method ID
-   * @param archive LoadTaskArchive for deserialization
-   * @return The deserialized task
-   */
-  ctp::ipc::FullPtr<chi::Task> LoadTask(chi::u32 method, chi::LoadTaskArchive& archive) override;
-
-  /**
-   * Deserialize task for local transfer (auto-generated)
-   */
-  ctp::ipc::FullPtr<chi::Task> LocalLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive) override;
-
-  /**
-   * Serialize task for local transfer (auto-generated)
-   */
-  void LocalSaveTask(chi::u32 method, chi::DefaultSaveArchive& archive,
-                     ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-
-  /**
    * Create a new copy of a task for distributed execution (auto-generated)
    */
   ctp::ipc::FullPtr<chi::Task> NewCopyTask(chi::u32 method,
@@ -156,8 +128,6 @@ public:
    * Create a new task of the specified method type (auto-generated)
    */
   ctp::ipc::FullPtr<chi::Task> NewTask(chi::u32 method) override;
-  void Aggregate(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task,
-                 const ctp::ipc::FullPtr<chi::Task>& replica_task) override;
   void DelTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr) override;
 
 };

@@ -140,10 +140,12 @@ struct FlushTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<FlushTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 }  // namespace external_test::simple_mod

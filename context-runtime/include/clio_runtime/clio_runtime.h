@@ -45,6 +45,7 @@
 #include "clio_runtime/singletons.h"
 #include "clio_runtime/task.h"
 #include "clio_runtime/task_archives.h"
+#include "clio_runtime/local_task_archives.h"
 #include "clio_runtime/types.h"
 #include "clio_runtime/worker.h"
 

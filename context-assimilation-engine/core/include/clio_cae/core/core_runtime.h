@@ -60,18 +60,8 @@ class Runtime : public chi::Container {
   // Virtual methods implemented in autogen/core_lib_exec.cc
   chi::TaskResume Run(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr, chi::RunContext& rctx) override;
   chi::u64 GetWorkRemaining() const override;
-  void SaveTask(chi::u32 method, chi::SaveTaskArchive& archive, ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-  void LoadTask(chi::u32 method, chi::LoadTaskArchive& archive,
-                ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-  ctp::ipc::FullPtr<chi::Task> AllocLoadTask(chi::u32 method, chi::LoadTaskArchive& archive) override;
-  void LocalLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive,
-                     ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-  ctp::ipc::FullPtr<chi::Task> LocalAllocLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive) override;
-  void LocalSaveTask(chi::u32 method, chi::DefaultSaveArchive& archive, ctp::ipc::FullPtr<chi::Task> task_ptr) override;
   ctp::ipc::FullPtr<chi::Task> NewCopyTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task_ptr, bool deep) override;
   ctp::ipc::FullPtr<chi::Task> NewTask(chi::u32 method) override;
-  void Aggregate(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task,
-                 const ctp::ipc::FullPtr<chi::Task>& replica_task) override;
   void DelTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr) override;
   /**
    * Initialize container with pool information (REQUIRED)

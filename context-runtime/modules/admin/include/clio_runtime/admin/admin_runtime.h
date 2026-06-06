@@ -348,44 +348,6 @@ public:
    */
   chi::u64 GetWorkRemaining() const override;
 
-  //===========================================================================
-  // Task Serialization Methods
-  //===========================================================================
-
-  /**
-   * Serialize task parameters (IN or OUT based on archive mode)
-   */
-  void SaveTask(chi::u32 method, chi::SaveTaskArchive &archive,
-                ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-
-  /**
-   * Deserialize task parameters into an existing task (IN or OUT based on archive mode)
-   */
-  void LoadTask(chi::u32 method, chi::LoadTaskArchive &archive,
-                ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-
-  /**
-   * Allocate and deserialize task parameters from network transfer
-   */
-  ctp::ipc::FullPtr<chi::Task> AllocLoadTask(chi::u32 method, chi::LoadTaskArchive &archive) override;
-
-  /**
-   * Deserialize task input parameters into an existing task using LocalSerialize
-   */
-  void LocalLoadTask(chi::u32 method, chi::DefaultLoadArchive &archive,
-                     ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-
-  /**
-   * Allocate and deserialize task input parameters using LocalSerialize
-   */
-  ctp::ipc::FullPtr<chi::Task> LocalAllocLoadTask(chi::u32 method, chi::DefaultLoadArchive &archive) override;
-
-  /**
-   * Serialize task output parameters using LocalSerialize (for local transfers)
-   */
-  void LocalSaveTask(chi::u32 method, chi::DefaultSaveArchive &archive,
-                     ctp::ipc::FullPtr<chi::Task> task_ptr) override;
-
   /**
    * Create a new copy of a task (deep copy for distributed execution)
    */
@@ -396,8 +358,6 @@ public:
    * Create a new task of the specified method type
    */
   ctp::ipc::FullPtr<chi::Task> NewTask(chi::u32 method) override;
-  void Aggregate(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task,
-                 const ctp::ipc::FullPtr<chi::Task>& replica_task) override;
   void DelTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_ptr) override;
 
 private:

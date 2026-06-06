@@ -151,10 +151,12 @@ struct CustomTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<CustomTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -213,10 +215,12 @@ struct CoMutexTestTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<CoMutexTestTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -278,10 +282,12 @@ struct CoRwLockTestTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<CoRwLockTestTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -343,10 +349,12 @@ struct WaitTestTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<WaitTestTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -401,10 +409,12 @@ struct TestLargeOutputTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<TestLargeOutputTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -470,10 +480,12 @@ struct GpuSubmitTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  CTP_CROSS_FUN void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  CTP_CROSS_FUN void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<GpuSubmitTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -523,10 +535,12 @@ struct SubtaskTestTask : public chi::Task {
     result_value_ = other->result_value_;
   }
 
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<SubtaskTestTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**

@@ -143,6 +143,8 @@ struct DestroyTask : public chi::Task {
 
   template <typename Ar> void SerializeStart(Ar &ar) { task_serialize<Ar>(ar); }
   template <typename Ar> void SerializeEnd(Ar &ar) {}
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -288,6 +290,8 @@ struct DynamicScheduleTask : public chi::Task {
   void SerializeEnd(Ar &ar) {
     ar(blob_name_, context_, tier_score_);
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -361,6 +365,8 @@ struct CompressTask : public chi::Task {
   void SerializeEnd(Ar &ar) {
     ar(blob_name_, context_, tier_score_);
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -431,6 +437,8 @@ struct DecompressTask : public chi::Task {
     ar(output_size_, decompress_time_ms_);
     ar.bulk(blob_data_, size_, BULK_XFER);
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -488,6 +496,8 @@ struct PollNodeLoadTask : public chi::Task {
   void SerializeEnd(Ar &ar) {
     ar(sample_);
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -514,6 +524,8 @@ struct PollConsumersTask : public chi::Task {
 
   template <typename Ar>
   void SerializeEnd(Ar &ar) {}
+
+  CLIO_RUN_TASK
 };
 
 }  // namespace clio::cte::compressor

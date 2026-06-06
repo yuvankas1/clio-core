@@ -369,10 +369,12 @@ struct AllocateBlocksTask : public chi::Task {
   }
 
   /** Aggregate replica results into this task */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<AllocateBlocksTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -444,10 +446,12 @@ struct FreeBlocksTask : public chi::Task {
   }
 
   /** Aggregate replica results into this task */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<FreeBlocksTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -510,10 +514,12 @@ struct WriteTask : public chi::Task {
   }
 
   /** Aggregate */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<WriteTask>());
   }
+
+  CLIO_RUN_TASK
 
   /**
    * Copy from another WriteTask (assumes this task is already constructed)
@@ -592,10 +598,12 @@ struct ReadTask : public chi::Task {
   }
 
   /** Aggregate */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<ReadTask>());
   }
+
+  CLIO_RUN_TASK
 
   /**
    * Copy from another ReadTask (assumes this task is already constructed)
@@ -663,10 +671,12 @@ struct GetStatsTask : public chi::Task {
   }
 
   /** Aggregate replica results into this task */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<GetStatsTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -728,10 +738,12 @@ struct UpdateTask : public chi::Task {
     alignment_   = other->alignment_;
   }
 
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<UpdateTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**

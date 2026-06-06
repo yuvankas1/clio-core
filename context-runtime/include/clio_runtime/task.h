@@ -139,6 +139,14 @@ class IpcManager;
 struct RunContext;
 class Worker;
 
+// Archive forward declarations (full definitions in task_archives.h / local_task_archives.h)
+class SaveTaskArchive;
+class LoadTaskArchive;
+template <typename BufferT> class LocalSaveTaskArchive;
+template <typename BufferT> class LocalLoadTaskArchive;
+class GpuSaveTaskArchive;
+class GpuLoadTaskArchive;
+
 /**
  * Get the current RunContext from thread-local Worker storage
  * This function is implemented in worker.cc to avoid circular dependency
@@ -233,9 +241,9 @@ class Task {
    * pick the inline default destructor instead of an unresolved declaration.
    */
 #if !CTP_IS_DEVICE_PASS
-  ~Task();
+  virtual ~Task();
 #else
-  ~Task() = default;
+  virtual ~Task() = default;
 #endif
 
   /**
@@ -460,22 +468,40 @@ class Task {
     completer_.store(completer);
   }
 
+  // ==========================================================================
+  // Virtual task lifecycle — override in derived task types.
+  // Archive types are forward-declared above; full definitions in
+  // task_archives.h and local_task_archives.h.
+  // ==========================================================================
+
+  /** Serialize task to a network (lightbeam) archive (SendIn path). */
+  virtual void Save(SaveTaskArchive &) {}
+  /** Deserialize task from a network archive (RecvIn path). */
+  virtual void Load(LoadTaskArchive &) {}
+
+  /** Serialize task to a local (in-process SHM) save archive. */
+  virtual void LocalSave(LocalSaveTaskArchive<chi::priv::vector<char>> &) {}
+  /** Deserialize task from a local load archive. */
+  virtual void LocalLoad(LocalLoadTaskArchive<chi::priv::vector<char>> &) {}
+
+  /** Serialize for GPU→CPU or CPU→GPU copy (host-side only). */
+  virtual void GpuSave(GpuSaveTaskArchive &) {}
+  /** Deserialize from a GPU load archive (host-side only). */
+  virtual void GpuLoad(GpuLoadTaskArchive &) {}
+
   /**
-   * Base aggregate method - propagates return codes and completer from replica
-   * tasks Sets this task's return code to the replica's return code if replica
-   * has non-zero return code Accepts any task type that inherits from Task
+   * Aggregate a replica task's results into this (origin) task.
    *
-   * IMPORTANT: Derived classes that override Aggregate MUST call
-   * Task::Aggregate(replica_task) first before aggregating their own fields.
+   * The base implementation propagates return_code_ and completer_.
+   * Derived tasks that aggregate custom output fields MUST call
+   * Task::Aggregate(replica) first, then merge their own fields.
    *
-   * @param replica_task The replica task to aggregate from
+   * @param replica_task Completed replica whose outputs are merged in.
    */
-  void Aggregate(const ctp::ipc::FullPtr<Task>& replica_task) {
-    // Propagate return code from replica to this task
+  virtual void Aggregate(const ctp::ipc::FullPtr<Task> &replica_task) {
     if (!replica_task.IsNull() && replica_task->GetReturnCode() != 0) {
       SetReturnCode(replica_task->GetReturnCode());
     }
-    // Copy the completer from the replica task
     if (!replica_task.IsNull()) {
       SetCompleter(replica_task->GetCompleter());
     }
@@ -1342,5 +1368,23 @@ inline chi::TaskResume make_task_fiber(F&& fn) {
 #define CHI_TASK_BODY_END    CLIO_TASK_BODY_END
 #define CHI_CO_AWAIT         CLIO_CO_AWAIT
 #define CHI_CO_RETURN        CLIO_CO_RETURN
+
+// ============================================================================
+// CLIO_RUN_TASK — override virtual serialization for a concrete task type.
+//
+// Place this macro in any struct/class that inherits from chi::Task to wire
+// up Save/Load/LocalSave/LocalLoad to the archive operator<</>> which
+// dispatches via the concrete (derived) type at compile time.
+//
+// Requires chi::DefaultSaveArchive / chi::DefaultLoadArchive to be defined
+// (provided by local_task_archives.h, included via clio_runtime.h).
+// ============================================================================
+#define CLIO_RUN_TASK \
+  void Save(chi::SaveTaskArchive& ar) override { ar << *this; } \
+  void Load(chi::LoadTaskArchive& ar) override { ar >> *this; } \
+  void LocalSave(chi::DefaultSaveArchive& ar) override { ar << *this; } \
+  void LocalLoad(chi::DefaultLoadArchive& ar) override { ar >> *this; }
+
+#define CHI_RUN_TASK CLIO_RUN_TASK
 
 #endif  // CHIMAERA_INCLUDE_CHIMAERA_TASK_H_

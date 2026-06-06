@@ -401,68 +401,64 @@ class Container {
   virtual void PostGpuContainerCreate() {}
 
   /**
-   * Serialize task parameters for network transfer (unified method)
-   * Must be implemented by derived classes
-   * Uses switch-case structure based on method ID to dispatch to appropriate serialization
-   * @param method The method ID to serialize
-   * @param archive SaveTaskArchive configured with srl_mode (true=In, false=Out)
-   * @param task_ptr Full pointer to the task to serialize
+   * Serialize task parameters for network transfer.
+   * Default delegates to task->Save(archive); override for custom dispatch.
    */
   virtual void SaveTask(u32 method, SaveTaskArchive& archive,
-                        ctp::ipc::FullPtr<Task> task_ptr) = 0;
+                        ctp::ipc::FullPtr<Task> task_ptr) {
+    (void)method;
+    task_ptr->Save(archive);
+  }
 
   /**
-   * Deserialize task parameters into an existing task from network transfer
-   * Must be implemented by derived classes
-   * Uses switch-case structure based on method ID to dispatch to appropriate deserialization
-   * Does not allocate - assumes task_ptr is already allocated
-   * @param method The method ID to deserialize
-   * @param archive LoadTaskArchive configured with srl_mode (true=In, false=Out)
-   * @param task_ptr Full pointer to the pre-allocated task to load into
+   * Deserialize task parameters into an existing pre-allocated task.
+   * Default delegates to task->Load(archive); override for custom dispatch.
    */
   virtual void LoadTask(u32 method, LoadTaskArchive& archive,
-                        ctp::ipc::FullPtr<Task> task_ptr) = 0;
+                        ctp::ipc::FullPtr<Task> task_ptr) {
+    (void)method;
+    task_ptr->Load(archive);
+  }
 
   /**
-   * Allocate and deserialize task parameters from network transfer
-   * Wrapper that calls NewTask followed by LoadTask
-   * @param method The method ID to deserialize
-   * @param archive LoadTaskArchive configured with srl_mode (true=In, false=Out)
-   * @return Full pointer to the newly allocated and deserialized task
+   * Allocate and deserialize a task from network transfer.
+   * Default: NewTask(method) + LoadTask(method, archive, task_ptr).
    */
-  virtual ctp::ipc::FullPtr<Task> AllocLoadTask(u32 method, LoadTaskArchive& archive) = 0;
+  virtual ctp::ipc::FullPtr<Task> AllocLoadTask(u32 method, LoadTaskArchive& archive) {
+    auto task_ptr = NewTask(method);
+    LoadTask(method, archive, task_ptr);
+    return task_ptr;
+  }
 
   /**
-   * Deserialize task input parameters into an existing task using LocalSerialize
-   * Must be implemented by derived classes
-   * Uses switch-case structure based on method ID to dispatch to appropriate deserialization
-   * Does not allocate - assumes task_ptr is already allocated
-   * @param method The method ID to deserialize
-   * @param archive DefaultLoadArchive for deserializing inputs
-   * @param task_ptr Full pointer to the pre-allocated task to load into
+   * Deserialize task input parameters into an existing pre-allocated task.
+   * Default delegates to task->LocalLoad(archive); override for custom dispatch.
    */
   virtual void LocalLoadTask(u32 method, DefaultLoadArchive& archive,
-                             ctp::ipc::FullPtr<Task> task_ptr) = 0;
+                             ctp::ipc::FullPtr<Task> task_ptr) {
+    (void)method;
+    task_ptr->LocalLoad(archive);
+  }
 
   /**
-   * Allocate and deserialize task input parameters using LocalSerialize
-   * Wrapper that calls NewTask followed by LocalLoadTask
-   * @param method The method ID to deserialize
-   * @param archive DefaultLoadArchive for deserializing inputs
-   * @return Full pointer to the newly allocated and loaded task
+   * Allocate and deserialize a task from local archive.
+   * Default: NewTask(method) + LocalLoadTask(method, archive, task_ptr).
    */
-  virtual ctp::ipc::FullPtr<Task> LocalAllocLoadTask(u32 method, DefaultLoadArchive& archive) = 0;
+  virtual ctp::ipc::FullPtr<Task> LocalAllocLoadTask(u32 method, DefaultLoadArchive& archive) {
+    auto task_ptr = NewTask(method);
+    LocalLoadTask(method, archive, task_ptr);
+    return task_ptr;
+  }
 
   /**
-   * Serialize task output parameters using LocalSerialize (for local transfers)
-   * Must be implemented by derived classes
-   * Uses switch-case structure based on method ID to dispatch to appropriate serialization
-   * @param method The method ID to serialize
-   * @param archive DefaultSaveArchive for serializing outputs
-   * @param task_ptr Full pointer to the task to save outputs from
+   * Serialize task output parameters to a local archive.
+   * Default delegates to task->LocalSave(archive); override for custom dispatch.
    */
   virtual void LocalSaveTask(u32 method, DefaultSaveArchive& archive,
-                              ctp::ipc::FullPtr<Task> task_ptr) = 0;
+                              ctp::ipc::FullPtr<Task> task_ptr) {
+    (void)method;
+    task_ptr->LocalSave(archive);
+  }
 
   /**
    * Create a new copy of a task (deep copy for distributed execution) - must be
@@ -487,14 +483,14 @@ class Container {
   CTP_DLL virtual ctp::ipc::FullPtr<Task> NewTask(u32 method) = 0;
 
   /**
-   * Aggregate replica results into origin task via Container dispatch
-   * Replaces virtual Task::Aggregate to avoid vtable on Task
-   * @param method The method ID for proper task type casting
-   * @param orig_task The origin task to aggregate into
-   * @param replica_task The replica task to aggregate from
+   * Aggregate replica results into origin task.
+   * Default delegates to orig_task->Aggregate(replica_task); override for custom dispatch.
    */
   virtual void Aggregate(u32 method, ctp::ipc::FullPtr<Task> orig_task,
-                          const ctp::ipc::FullPtr<Task>& replica_task) = 0;
+                          const ctp::ipc::FullPtr<Task>& replica_task) {
+    (void)method;
+    orig_task->Aggregate(replica_task);
+  }
 
   /**
    * Delete a task via Container dispatch with proper type casting

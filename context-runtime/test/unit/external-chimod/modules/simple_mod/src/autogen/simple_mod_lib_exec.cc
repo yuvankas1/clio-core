@@ -39,62 +39,6 @@ chi::TaskResume Runtime::Run(chi::u32 method, ctp::ipc::FullPtr<chi::Task> task_
   CLIO_TASK_BODY_END
 }
 
-void Runtime::SaveTask(chi::u32 method, chi::SaveTaskArchive& archive, 
-                        ctp::ipc::FullPtr<chi::Task> task_ptr) {
-  switch (method) {
-    default: {
-      // Unknown method - do nothing
-      break;
-    }
-  }
-}
-
-void Runtime::LoadTask(chi::u32 method, chi::LoadTaskArchive& archive,
-                        ctp::ipc::FullPtr<chi::Task> task_ptr) {
-  switch (method) {
-    default: {
-      // Unknown method - do nothing
-      break;
-    }
-  }
-}
-
-ctp::ipc::FullPtr<chi::Task> Runtime::AllocLoadTask(chi::u32 method, chi::LoadTaskArchive& archive) {
-  ctp::ipc::FullPtr<chi::Task> task_ptr = NewTask(method);
-  if (!task_ptr.IsNull()) {
-    LoadTask(method, archive, task_ptr);
-  }
-  return task_ptr;
-}
-
-void Runtime::LocalLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive,
-                            ctp::ipc::FullPtr<chi::Task> task_ptr) {
-  switch (method) {
-    default: {
-      // Unknown method - do nothing
-      break;
-    }
-  }
-}
-
-ctp::ipc::FullPtr<chi::Task> Runtime::LocalAllocLoadTask(chi::u32 method, chi::DefaultLoadArchive& archive) {
-  ctp::ipc::FullPtr<chi::Task> task_ptr = NewTask(method);
-  if (!task_ptr.IsNull()) {
-    LocalLoadTask(method, archive, task_ptr);
-  }
-  return task_ptr;
-}
-
-void Runtime::LocalSaveTask(chi::u32 method, chi::DefaultSaveArchive& archive, 
-                             ctp::ipc::FullPtr<chi::Task> task_ptr) {
-  switch (method) {
-    default: {
-      // Unknown method - do nothing
-      break;
-    }
-  }
-}
-
 ctp::ipc::FullPtr<chi::Task> Runtime::NewCopyTask(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task_ptr, bool deep) {
   auto* ipc_manager = CLIO_IPC;
   if (!ipc_manager) {
@@ -127,16 +71,6 @@ ctp::ipc::FullPtr<chi::Task> Runtime::NewTask(chi::u32 method) {
     default: {
       // For unknown methods, return null pointer
       return ctp::ipc::FullPtr<chi::Task>();
-    }
-  }
-}
-
-void Runtime::Aggregate(chi::u32 method, ctp::ipc::FullPtr<chi::Task> orig_task,
-                        const ctp::ipc::FullPtr<chi::Task>& replica_task) {
-  switch (method) {
-    default: {
-      orig_task->Aggregate(replica_task);
-      break;
     }
   }
 }

@@ -362,10 +362,12 @@ struct RegisterTargetTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<RegisterTargetTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -423,10 +425,12 @@ struct UnregisterTargetTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<UnregisterTargetTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -482,13 +486,15 @@ struct ListTargetsTask : public chi::Task {
    * Aggregate entries from another ListTargetsTask
    * Appends all target names from the other task to this one
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     auto other = other_base.template Cast<ListTargetsTask>();
     for (const auto &target_name : other->target_names_) {
       target_names_.push_back(target_name);
     }
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -542,10 +548,12 @@ struct StatTargetsTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<StatTargetsTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -628,11 +636,13 @@ struct GetTargetInfoTask : public chi::Task {
   /**
    * Aggregate replica results
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     // For target info, just copy (should be same across replicas)
     Copy(other_base.template Cast<GetTargetInfoTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1027,10 +1037,12 @@ struct GetOrCreateTagTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<GetOrCreateTagTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1215,10 +1227,12 @@ struct PutBlobTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<PutBlobTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1372,10 +1386,12 @@ struct GetBlobTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<GetBlobTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1444,10 +1460,12 @@ struct ReorganizeBlobTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<ReorganizeBlobTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1509,10 +1527,12 @@ struct DelBlobTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<DelBlobTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1589,10 +1609,12 @@ struct DelTagTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<DelTagTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1652,11 +1674,13 @@ struct GetTagSizeTask : public chi::Task {
    * Aggregate results from a replica task
    * Sums the tag_size_ values from multiple nodes
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     auto replica = other_base.template Cast<GetTagSizeTask>();
     tag_size_ += replica->tag_size_;
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1722,10 +1746,12 @@ struct PollTelemetryLogTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<PollTelemetryLogTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1793,10 +1819,12 @@ struct GetBlobScoreTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<GetBlobScoreTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1864,10 +1892,12 @@ struct GetBlobSizeTask : public chi::Task {
    * Aggregate replica results into this task
    * @param other Pointer to the replica task to aggregate from
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<GetBlobSizeTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -1966,10 +1996,12 @@ struct GetBlobInfoTask : public chi::Task {
   /**
    * Aggregate replica results into this task
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<GetBlobInfoTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -2027,7 +2059,7 @@ struct GetContainedBlobsTask : public chi::Task {
    * Aggregate results from a replica task
    * Merges the blob_names_ vectors from multiple nodes
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     auto replica = other_base.template Cast<GetContainedBlobsTask>();
     // Merge blob names from replica into this task's blob_names_
@@ -2035,6 +2067,8 @@ struct GetContainedBlobsTask : public chi::Task {
       blob_names_.push_back(replica->blob_names_[i]);
     }
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -2109,7 +2143,7 @@ struct TagQueryTask : public chi::Task {
   /**
    * Aggregate results from multiple nodes
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     auto other = other_base.template Cast<TagQueryTask>();
     // Sum total matched tags across replicas
@@ -2122,6 +2156,8 @@ struct TagQueryTask : public chi::Task {
       results_.push_back(tag_name);
     }
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -2204,7 +2240,7 @@ struct BlobQueryTask : public chi::Task {
   /**
    * Aggregate results from multiple nodes
    */
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     auto other = other_base.template Cast<BlobQueryTask>();
     // Sum total matched blobs across replicas
@@ -2219,6 +2255,8 @@ struct BlobQueryTask : public chi::Task {
       blob_names_.push_back(other->blob_names_[i]);
     }
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -2260,10 +2298,12 @@ struct FlushMetadataTask : public chi::Task {
     entries_flushed_ = other->entries_flushed_;
   }
 
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<FlushMetadataTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -2317,10 +2357,12 @@ struct FlushDataTask : public chi::Task {
     blobs_flushed_ = other->blobs_flushed_;
   }
 
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<FlushDataTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -2418,10 +2460,12 @@ struct SemanticSearchTask : public chi::Task {
     results_ = other->results_;
   }
 
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<SemanticSearchTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 /**
@@ -2515,10 +2559,12 @@ struct TemporalSearchTask : public chi::Task {
     results_ = other->results_;
   }
 
-  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) {
+  void Aggregate(const ctp::ipc::FullPtr<chi::Task> &other_base) override {
     Task::Aggregate(other_base);
     Copy(other_base.template Cast<TemporalSearchTask>());
   }
+
+  CLIO_RUN_TASK
 };
 
 }  // namespace clio::cte::core
